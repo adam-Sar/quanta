@@ -1,6 +1,6 @@
 # Backend API
 
-**Current version:** 0.7.0 (Task 7 AI). Interactive OpenAPI is available at `/docs`; machine-readable OpenAPI is `/openapi.json`.
+**Current version:** 0.8.0 (Task 8 recommendations). Interactive OpenAPI is available at `/docs`; machine-readable OpenAPI is `/openapi.json`.
 
 ## Conventions
 
@@ -421,6 +421,71 @@ List every interpretation run for a dataset, ordered by creation time desc. **40
 - `page` >= 1 (default 1).
 - `page_size` 1-200 (default 50).
 
+## Recommendations (Task 8)
+
+### `POST /datasets/{dataset_id}/recommendations`
+
+Run the deterministic recommendation rule engine against the latest detection batch and persist a fresh immutable batch of `recommendations` rows. Every recommendation is **preview-only**; the apply step lands in Task 9 (validation). **404** if the dataset does not exist; **409** if no detection batch is available.
+
+**201**
+
+```json
+[
+  {
+    "recommendation_id": "5a8581da-0279-4a58-9f09-22f06dceaa10",
+    "dataset_id": "5a8581da-0279-4a58-9f09-22f06dceaa10",
+    "profile_id": "8d4f2c40-6b29-4a90-9f8f-1dbf8cf01a2c",
+    "kind": "missingness_treatment",
+    "severity": "high",
+    "title": "Drop sparse column 'email'",
+    "rationale": "Column 'email' has a null rate of 0.8500, which is above the safe operating threshold (0.80). Drop the column after confirming no downstream consumer depends on it.",
+    "affected_columns": ["email"],
+    "supporting_finding_ids": ["f47ac10b-58cc-4372-a567-0e02b2c3d479"],
+    "confidence": 0.42,
+    "priority": 31,
+    "operation": {
+      "kind": "drop_column",
+      "params": {"column": "email", "strategy": "drop"},
+      "preview_only": true
+    },
+    "formula_version": "task8-1.0",
+    "components": {
+      "by_kind": {"missingness_treatment": 1},
+      "by_severity": {"high": 1},
+      "score": {"score": 72.5, "grade": "B"},
+      "interpretation_id": null,
+      "formula_version": "task8-1.0",
+      "generated_at": "2026-07-30T11:00:00+00:00",
+      "findings": [
+        {
+          "finding_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+          "kind": "missingness",
+          "severity": "high",
+          "column_name": "email",
+          "metric": "null_rate",
+          "value": 0.85,
+          "threshold": 0.5
+        }
+      ]
+    },
+    "created_at": "2026-07-30T11:00:00.000+00:00"
+  }
+]
+```
+
+### `GET /datasets/{dataset_id}/recommendations/{recommendation_id}`
+
+Return a single persisted recommendation row. **404** if the recommendation does not exist.
+
+### `GET /datasets/{dataset_id}/recommendations`
+
+List every recommendation row for a dataset, ordered by creation time desc. **404** if the dataset is unknown.
+
+**Query parameters**
+
+- `page` >= 1 (default 1).
+- `page_size` 1-200 (default 50).
+
 ## Error contract
 
 All errors use:
@@ -434,7 +499,8 @@ All errors use:
 | 400 | `empty_upload`, `invalid_dataset_file` |
 | 404 | `dataset_not_found`, `version_not_found` |
 | 409 | `scoring_not_scoreable` |
-| 409 | `dataset_not_profileable`, `detection_not_profileable`, `scoring_not_scoreable`, `invalid_profile_state`, `invalid_detection_state`, `invalid_scoring_state` |
+| 409 | `dataset_not_profileable`, `detection_not_profileable`, `scoring_not_scoreable`, `invalid_profile_state`, `invalid_detection_state`, `invalid_scoring_state`, `recommendations_not_available`, `interpretation_not_available` |
+| 422 | `invalid_recommendation_state` |
 | 413 | `upload_too_large` |
 | 415 | `unsupported_file_format` |
 | 422 | `validation_error` |
@@ -448,4 +514,8 @@ Specific codes are not final; the envelope and `X-Request-ID` propagation are.
 - Added `POST /datasets/{dataset_id}/scores` (201), `GET /datasets/{dataset_id}/score` (200), `GET /datasets/{dataset_id}/versions/{version_id}/score` (200), and `GET /datasets/{dataset_id}/scores` (200 paginated list).
 - Added `scoring_not_scoreable` (409) and `invalid_scoring_state` (422) codes.
 - Persisted `quality_scores` rows carry a documented `formula_version` and a JSONB `components` breakdown (per-kind / per-severity / per-column / per-finding) including both detection and data-error confidences. See `backend/docs/scoring.md` for the formula.
+- Task 6 added `POST /datasets/{dataset_id}/comparisons` (201), `GET /datasets/{dataset_id}/comparisons/{comparison_id}` (200), `GET /datasets/{dataset_id}/comparisons` (200 paginated list), and `GET /datasets/{dataset_id}/lineage` (200) for deterministic history comparisons.
+- Task 7 added `POST /datasets/{dataset_id}/interpretations` (201), `GET /datasets/{dataset_id}/interpretations/{interpretation_id}` (200), and `GET /datasets/{dataset_id}/interpretations` (200 paginated list) for the provider-independent AI reasoning layer.
+- Task 8 added `POST /datasets/{dataset_id}/recommendations` (201), `GET /datasets/{dataset_id}/recommendations/{recommendation_id}` (200), and `GET /datasets/{dataset_id}/recommendations` (200 paginated list) for the deterministic, preview-only recommendation rule engine.
+- Added `recommendations_not_available` (409) and `invalid_recommendation_state` (422) codes.
 - `X-Request-ID` continues to be included in the response headers of every endpoint.

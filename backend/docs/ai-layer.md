@@ -101,9 +101,14 @@ No provider can issue SQL, Python, shell, network calls, or arbitrary
 transformation expressions. Prompt injection in dataset values must
 be treated as untrusted data, and provider input/output must have
 audit metadata without logging sensitive row content. Recommendations
-and transformations belong to Task 8 (Recommendations) and Task 9
-(Validation); the AI layer is strictly **advisory** and never
-mutates upstream rows.
+belong to Task 8 (the deterministic, preview-only recommendation rule
+engine described in `backend/docs/recommendations.md`); the actual
+transformation of the dataset belongs to Task 9 (Validation). The AI
+layer is strictly **advisory** and never mutates upstream rows. Task 8
+may optionally record the latest `ai_interpretations` row id inside a
+recommendation's JSONB `components` payload so consumers can
+correlate the two, but the recommendation rule engine does not consume
+the AI interpretation text.
 
 ## Limitations
 

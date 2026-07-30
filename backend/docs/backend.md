@@ -93,26 +93,29 @@ Copy `.env.example` to `.env`; never commit `.env`. Important current settings:
 | `AI_FORMULA_VERSION` | Identifier persisted on every Task 7 AI interpretation row |
 | `AI_MAX_FINDINGS_PER_REQUEST` | Upper bound on findings included in the AI prompt |
 | `AI_PROMPT_CHAR_BUDGET` | Soft upper bound on prompt size in characters |
+| `RECOMMENDATION_FORMULA_VERSION` | Identifier persisted on every Task 8 recommendation row |
+| `RECOMMENDATION_MAX_PER_RUN` | Maximum recommendations persisted per run; rows above the cap are trimmed by descending priority |
 
-Storage, LLM, and Redis variables are listed as future configuration contracts but remain unused in Task 6.
+Storage, LLM, and Redis variables are listed as future configuration contracts but remain unused in Task 8.
 
 ## Structure
 
 ```text
 backend/
   app/
-    api/routes/{health,datasets,profiles,findings,scores,history,ai}.py
+    api/routes/{health,datasets,profiles,findings,scores,history,ai,recommendations}.py
     core/{config,exceptions,logging,middleware}.py
     db/{base,session}.py
-    db/models/{dataset,profile,finding,quality_score,history_comparison,ai_interpretation}.py
-    db/repositories/{datasets,profiles,findings,quality_scores,history_comparisons,ai_interpretations}.py
+    db/models/{dataset,profile,finding,quality_score,history_comparison,ai_interpretation,recommendation}.py
+    db/repositories/{datasets,profiles,findings,quality_scores,history_comparisons,ai_interpretations,recommendations}.py
     detection/{types,exceptions,detectors,service}.py
     ingestion/{types,exceptions,validators,readers}.py
     profiling/{types,exceptions,metrics,service}.py
     scoring/{types,exceptions,formula,service}.py
     history/{types,exceptions,comparison,drift,lineage,service}.py
-    ai/{types,exceptions,comparison,drift,lineage,service}.py
-    schemas/{common,datasets,health,profiles,findings,scores,history,ai}.py
+    ai/{types,exceptions,protocols,prompts,service}.py
+    recommendations/{types,exceptions,formula,service}.py
+    schemas/{common,datasets,health,profiles,findings,scores,history,ai,recommendations}.py
     services/{dataset_service,exceptions}.py
     storage/{files}.py
     api/{dependencies,router}.py
@@ -168,6 +171,14 @@ backend/
 2. Database failures roll back the insert only; the original files, profiles, scores, and finding rows are never mutated.
 3. `GET /datasets/{dataset_id}/interpretations/{interpretation_id}` and `GET /datasets/{dataset_id}/interpretations` return the persisted interpretation rows without recomputing.
 4. Real provider SDKs land in a later task; the default `noop` provider keeps tests and offline runs fast and deterministic.
+
+## Recommendations lifecycle (Task 8)
+
+1. `POST /datasets/{dataset_id}/recommendations` (Task 8) resolves the latest profile, reads the immutable Task 4 findings, runs the deterministic `compute_recommendation_run` rule engine, optionally enriches the JSONB `components` payload with the latest Task 5 score id and the latest Task 7 AI interpretation id, and persists fresh immutable `recommendations` rows in a single transaction.
+2. The rule engine is **preview-only**: every recommendation carries `preview_only=True` and a constrained operation (`impute_missing`, `drop_column`, `drop_duplicates`, `cap_outliers`, `cast_type`, `group_rare_categorical`, `review`). The actual transformation requires Task 9 validation before a new immutable dataset version can be created.
+3. Database failures roll back the inserts only; the original files, profiles, scores, finding rows, and AI interpretation rows are never mutated.
+4. `GET /datasets/{dataset_id}/recommendations/{recommendation_id}` and `GET /datasets/{dataset_id}/recommendations` return the persisted recommendation rows without recomputing.
+5. The deterministic rule engine and all thresholds are documented in `backend/docs/recommendations.md`.
 
 ## Logging and errors
 

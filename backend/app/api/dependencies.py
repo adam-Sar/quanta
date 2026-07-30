@@ -16,6 +16,7 @@ from app.db.repositories.findings import FindingRepository
 from app.db.repositories.history_comparisons import HistoryComparisonRepository
 from app.db.repositories.profiles import ProfileRepository
 from app.db.repositories.quality_scores import QualityScoreRepository
+from app.db.repositories.recommendations import RecommendationRepository
 from app.db.session import get_db
 from app.detection.service import DetectionService
 from app.history.service import HistoryService
@@ -24,6 +25,7 @@ from app.ingestion.types import DatasetFormat
 from app.ingestion.validators import DatasetFileValidator
 from app.profiling.metrics import DatasetProfiler
 from app.profiling.service import ProfilingService
+from app.recommendations.service import RecommendationService
 from app.scoring.service import ScoringService
 from app.services.dataset_service import DatasetService
 from app.storage.files import LocalFileStorage
@@ -120,5 +122,21 @@ def get_reasoning_service(
         session=session,
         repository=AIInterpretationRepository(session),
         provider=NoopProvider(),
+        settings=settings,
+    )
+
+
+def get_recommendation_service(
+    session: Annotated[Session, Depends(get_db)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> RecommendationService:
+    """Compose the Task 8 deterministic recommendation service with persistence."""
+
+    return RecommendationService(
+        session=session,
+        repository=RecommendationRepository(session),
+        finding_repository=FindingRepository(session),
+        score_repository=QualityScoreRepository(session),
+        interpretation_repository=AIInterpretationRepository(session),
         settings=settings,
     )

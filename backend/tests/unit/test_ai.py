@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import io
 from collections.abc import Iterator
-
 from pathlib import Path
 from uuid import UUID, uuid4
 

@@ -3,12 +3,13 @@
 ## Current milestone
 
 Tasks 1 (foundation), 2 (dataset ingestion), 3 (dataset profiling), 4
-(deterministic detection), 5 (quality scoring), 6 (history), and 7
-(AI reasoning) are complete. Tasks 3-7 add immutable profile,
-finding, score, history, and AI interpretation artifacts derived from
-the original upload, persisted as `DatasetProfile` / `ColumnProfile`
-/ `Finding` / `QualityScore` / `HistoryComparison` / `AIInterpretation`
-rows. Recommendations, validation, frontend work, and durable
+(deterministic detection), 5 (quality scoring), 6 (history), 7
+(AI reasoning), and 8 (recommendations) are complete. Tasks 3-8
+add immutable profile, finding, score, history, AI interpretation,
+and recommendation artifacts derived from the original upload,
+persisted as `DatasetProfile` / `ColumnProfile` / `Finding` /
+`QualityScore` / `HistoryComparison` / `AIInterpretation` /
+`Recommendation` rows. Validation, frontend work, and durable
 analysis jobs are still pending.
 
 ## Incremental delivery rule
@@ -21,7 +22,7 @@ For each approved task: state goal and architecture, identify files/dependencies
 2. ~~**Task 5 scoring:** explainable severity, two confidence concepts, and a decomposable quality score with documented formula.~~ **Done.** Deterministic formula `task5-1.0` aggregates the Task 4 findings into a 0–100 score, an A–F grade, and a JSONB breakdown (`by_kind` / `by_severity` / `by_column` / `per_finding` with `detection_confidence` and `data_error_confidence`). Exposed via `POST/GET /datasets/{id}/scores` plus `GET .../score` and `GET .../versions/{id}/score`. Full formula in `backend/docs/scoring.md`.
 3. ~~**Task 6 history:** version/profile/schema/distribution comparison, drift detection, lineage.~~ **Done (commit `b1a0b94`).** Deterministic `HistoryService` reads the immutable Task 2-5 rows for two versions and persists a fresh `HistoryComparison` row (schema diff + numeric/categorical drift + score drift). Exposed via `POST/GET /datasets/{id}/comparisons` plus `GET .../lineage`. Full formula in `backend/docs/history.md`.
 4. ~~**Task 7 AI:** provider abstraction and structured reasoning over findings, not datasets.~~ **Done (commit `0184fef`).** Provider-independent `LLMProvider` Protocol; deterministic `NoopProvider` for offline runs; `ReasoningService` reads the Task 4 findings bound to the latest profile, builds a bounded prompt, calls the configured provider, validates the structured `InterpretationResponseSchema` response, and persists a fresh `ai_interpretations` row. Exposed via `POST/GET /datasets/{id}/interpretations`. Real provider SDKs land in a later task; full protocol in `backend/docs/ai-layer.md`.
-5. **Task 8 recommendations:** constrained operations, never executable code. *(next)*
+5. ~~**Task 8 recommendations:** constrained operations, never executable code.~~ **Done.** Deterministic rule engine consumes the Task 4 findings bound to the latest profile (optionally enriched with the latest Task 5 score id and the latest Task 7 AI interpretation id) and persists a fresh immutable batch of `recommendations` rows. Every recommendation is **preview-only** and carries a constrained operation (`impute_missing`, `drop_column`, `drop_duplicates`, `cap_outliers`, `cast_type`, `group_rare_categorical`, `review`) with severity, confidence, priority, and supporting finding ids. Exposed via `POST/GET /datasets/{id}/recommendations`. The apply step is intentionally **out of scope** and lands in Task 9. Full rule engine in `backend/docs/recommendations.md`.
 6. **Task 9 validation:** deterministic preview and side-effect checks before execution.
 7. **Task 10 API completion:** durable analysis job resource, frontend-ready contracts.
 8. **Task 11 hardening:** measured performance, security, limits, worker infrastructure if justified.

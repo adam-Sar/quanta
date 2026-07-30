@@ -8,6 +8,7 @@ from app.api.routes.findings import router as findings_router
 from app.api.routes.health import router as health_router
 from app.api.routes.history import router as history_router
 from app.api.routes.profiles import router as profiles_router
+from app.api.routes.recommendations import router as recommendations_router
 from app.api.routes.scores import router as scores_router
 
 api_router = APIRouter()
@@ -18,3 +19,4 @@ api_router.include_router(findings_router)
 api_router.include_router(scores_router)
 api_router.include_router(history_router)
 api_router.include_router(ai_router)
+api_router.include_router(recommendations_router)

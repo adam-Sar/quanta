@@ -1,8 +1,8 @@
 # Data model
 
-## Task 6 state
+## Task 8 state
 
-`0001_foundation` establishes a concrete Alembic head. `0002_dataset_ingestion` creates the durable tables for logical datasets and their immutable versions. `0003_create_dataset_profiles` adds immutable profile artifacts. `0004_create_dataset_findings` adds immutable quality findings bound to the latest profile. `0005_create_dataset_quality_scores` adds immutable quality scoring rows. `0006_create_history_comparisons` adds immutable history comparison rows with three JSONB payload columns (schema diff, distribution drift, score drift) and the documented `formula_version` that aggregate the findings into a 0–100 score, a letter grade, and a documented JSONB breakdown. No AI, trend, or recommendation tables exist yet.
+`0001_foundation` establishes a concrete Alembic head. `0002_dataset_ingestion` creates the durable tables for logical datasets and their immutable versions. `0003_create_dataset_profiles` adds immutable profile artifacts. `0004_create_dataset_findings` adds immutable quality findings bound to the latest profile. `0005_create_dataset_quality_scores` adds immutable quality scoring rows. `0006_create_history_comparisons` adds immutable history comparison rows. `0007_create_ai_interpretations` adds immutable AI interpretation rows. `0008_create_recommendations` adds immutable recommendation rows (one row per structured, preview-only recommendation) with a documented `formula_version` (`task8-1.0`) and two JSONB payload columns (`operation_params`, `components`). Validation tables (Task 9) do not exist yet.
 
 ### `datasets`
 
@@ -115,7 +115,31 @@ Indexes: `ix_findings_dataset_version`, `ix_findings_profile`, `ix_findings_kind
 
 Indexes: `ix_quality_scores_dataset_created`, `ix_quality_scores_profile`, `ix_quality_scores_grade`.
 
-## Modeling rules for Task 6+
+### `recommendations` (Task 8)
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | Default `uuid4()`. |
+| `dataset_id` | UUID NOT NULL FK → `datasets.id` ON DELETE CASCADE | Recommendation scope. |
+| `profile_id` | UUID NOT NULL FK → `dataset_profiles.id` ON DELETE CASCADE | Source profile whose findings produced the recommendation. |
+| `kind` | VARCHAR(64) NOT NULL | `missingness_treatment`, `duplicate_removal`, `outlier_treatment`, `data_quality_fix`, `cardinality_reduction`, `schema_normalization`, `pipeline_review`. |
+| `severity` | VARCHAR(32) NOT NULL | `info`, `low`, `medium`, `high`, `critical`. |
+| `title` | VARCHAR(255) NOT NULL | Short human-readable recommendation title. |
+| `rationale` | VARCHAR(2000) NOT NULL | Human-readable explanation that points back to the source finding. |
+| `affected_columns` | JSONB NOT NULL | Array of column names (or `<dataset>` for dataset-level). |
+| `supporting_finding_ids` | JSONB NOT NULL | Array of UUID strings for the Task 4 findings that produced the recommendation. |
+| `confidence` | FLOAT NOT NULL | Bounded `[0, 1]`; derived from `detection_confidence * data_error_confidence`. |
+| `priority` | INT NOT NULL | Integer ordering signal derived from severity weight and confidence. |
+| `operation_kind` | VARCHAR(64) NULL | `impute_missing`, `drop_column`, `drop_duplicates`, `cap_outliers`, `cast_type`, `group_rare_categorical`, `review`. |
+| `operation_params` | JSONB NOT NULL | Operation-specific structured parameters. |
+| `preview_only` | BOOLEAN NOT NULL | Always `True` in Task 8; the apply step lands in Task 9. |
+| `formula_version` | VARCHAR(64) NOT NULL | Identifier of the rule engine (current default `task8-1.0`). |
+| `components` | JSONB NOT NULL | Decomposable breakdown: `by_kind`, `by_severity`, `score`, `interpretation_id`, `formula_version`, `generated_at`, `findings[]`. |
+| `created_at` | TIMESTAMPTZ NOT NULL DEFAULT now() | Insertion timestamp. |
+
+Indexes: `ix_recommendations_dataset_created`, `ix_recommendations_profile`, `ix_recommendations_kind_severity`, `ix_recommendations_formula`.
+
+## Modeling rules for Task 9+
 
 1. UUID primary keys and timezone-aware `created_at`/`updated_at`.
 2. Foreign keys with deliberate delete behavior; no accidental cascades.

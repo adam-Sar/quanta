@@ -39,15 +39,21 @@ class Finding:
 
     Findings are immutable. Re-running detection creates a new set of
     Finding rows; existing rows are not mutated.
+
+    ``id`` is optional because the domain dataclass is also produced by
+    pure code paths that do not have a persisted UUID (for example,
+    the Task 8 recommendation rule engine). Service layers that read
+    a persisted ``Finding`` row populate ``id`` from the ORM row.
     """
 
-    kind: FindingKind
-    severity: FindingSeverity
-    column_name: str | None
-    metric: str
-    value: float
-    threshold: float
-    description: str
+    id: UUID | None = None
+    kind: FindingKind = FindingKind.MISSINGNESS
+    severity: FindingSeverity = FindingSeverity.INFO
+    column_name: str | None = None
+    metric: str = ""
+    value: float = 0.0
+    threshold: float = 0.0
+    description: str = ""
     details: dict[str, Any] = field(default_factory=dict)
 
 

@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Quanta Data Reliability API"
-    app_version: str = "0.7.0"
+    app_version: str = "0.8.0"
     environment: Literal["development", "test", "staging", "production"] = "development"
     debug: bool = False
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
@@ -82,6 +82,15 @@ class Settings(BaseSettings):
     ai_formula_version: str = Field(default="task7-1.0", min_length=1, max_length=64)
     ai_max_findings_per_request: int = Field(default=20, ge=1, le=200)
     ai_prompt_char_budget: int = Field(default=8_000, ge=256, le=131_072)
+
+    # Task 8 recommendations settings. The deterministic rule engine
+    # is bounded by ``recommendation_max_per_run``; rows above the cap
+    # are trimmed by descending priority so consumers always see the
+    # most actionable subset first.
+    recommendation_formula_version: str = Field(
+        default="task8-1.0", min_length=1, max_length=64
+    )
+    recommendation_max_per_run: int = Field(default=50, ge=1, le=500)
 
     @property
     def max_upload_size_bytes(self) -> int:

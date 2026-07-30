@@ -38,8 +38,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "adds threshold-driven detection findings bound to the latest profile; "
             "Task 5 adds an explainable, decomposable quality score with two "
             "confidence concepts; Task 6 adds deterministic history "
-            "comparisons and lineage between dataset versions. AI, "
-            "recommendations, and validation are introduced in later tasks."
+            "comparisons and lineage between dataset versions; Task 7 adds "
+            "provider-independent AI reasoning over the latest detection batch. "
+            "Task 8 adds a deterministic recommendations rule engine that emits "
+            "structured, preview-only recommendations derived from the same "
+            "findings. Validation, durable analysis jobs, and worker infrastructure "
+            "land in later tasks."
         ),
         debug=runtime_settings.debug,
         lifespan=lifespan,

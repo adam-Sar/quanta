@@ -2,7 +2,7 @@
 
 ## Status
 
-This document distinguishes **implemented in Task 1, Task 2, Task 3, Task 4, Task 5, and Task 6** from **planned** behavior.
+This document distinguishes **implemented in Task 1, Task 2, Task 3, Task 4, Task 5, Task 6, Task 7, and Task 8** from **planned** behavior.
 
 ## System principles
 
@@ -12,7 +12,7 @@ This document distinguishes **implemented in Task 1, Task 2, Task 3, Task 4, Tas
 4. Every transformation must pass deterministic validation and require explicit approval before creating a new immutable dataset version.
 5. API models are separate from persistence models.
 
-## Implemented component flow (Task 1 + Task 2 + Task 3 + Task 4 + Task 5 + Task 6 + Task 7)
+## Implemented component flow (Task 1 + Task 2 + Task 3 + Task 4 + Task 5 + Task 6 + Task 7 + Task 8)
 
 ```text
 HTTP client
@@ -43,12 +43,26 @@ HTTP client
   -> /datasets/{id}/scores routes (Task 5)
   -> /datasets/{id}/comparisons and /datasets/{id}/lineage routes (Task 6)
   -> /datasets/{id}/interpretations routes (Task 7)
-      -> ScoringService.score_latest / get_latest / get_for_version / list_for_dataset
+  -> /datasets/{id}/recommendations routes (Task 8)
+  -> ScoringService.score_latest / get_latest / get_for_version / list_for_dataset
           -> FindingRepository.list_for_profile (read immutable Task 4 rows)
           -> compute_quality_score (detection_confidence, data_error_confidence,
              severity weights, normalized penalty, 0-100 score, A-F grade)
           -> SQLAlchemy Session / QualityScoreRepository
               -> quality_scores (score, grade, formula_version, JSONB components)
+  -> /datasets/{id}/recommendations routes (Task 8)
+      -> RecommendationService.recommend / get_recommendation / list_for_dataset
+          -> FindingRepository.list_for_profile (read immutable Task 4 rows)
+          -> QualityScoreRepository.get_latest_for_version (read latest score id)
+          -> AIInterpretationRepository (read latest interpretation id only)
+          -> compute_recommendation_run (pure rule engine: per-finding
+             severity / value -> preview-only operation; confidence from
+             detection_confidence * data_error_confidence)
+          -> SQLAlchemy Session / RecommendationRepository
+              -> recommendations (kind, severity, title, rationale,
+                 affected_columns, supporting_finding_ids, confidence,
+                 priority, operation_kind, operation_params, preview_only,
+                 formula_version, JSONB components)
   -> Error envelope: { code, message, details, request_id }
   -> Structured request log without request bodies or dataset contents
 ```
@@ -60,12 +74,13 @@ Polars / DuckDB / PyArrow profiling (Task 3 done; DuckDB later)
   -> independent quality detectors (Task 4 done)
   -> standardized finding aggregation (Task 5 done)
   -> objective scoring (Task 5 done)
-  -> provider-independent AI interpretation (Task 7)
-  -> structured recommendation validation (Tasks 8-9)
+  -> provider-independent AI interpretation (Task 7 done)
+  -> deterministic, preview-only recommendation rule engine (Task 8 done)
+  -> deterministic recommendation validation + apply step (Task 9)
   -> explicit approval + deterministic transformation
   -> post-change validation + new dataset version
   -> quality report
-  -> historical comparison and drift detection (Task 6)
+  -> historical comparison and drift detection (Task 6 done)
 ```
 
 ## Package responsibilities
@@ -77,7 +92,10 @@ Polars / DuckDB / PyArrow profiling (Task 3 done; DuckDB later)
 - `app/ingestion`: file content validation, format-aware metadata readers, ingestion domain types and exceptions.
 - `app/profiling`: deterministic Polars-based column metrics and the `ProfilingService` that persists immutable `DatasetProfile` / `ColumnProfile` rows. No DuckDB in Task 3.
 - `app/detection`: threshold-driven deterministic detectors (missingness, duplicates, invalid values, outliers, cardinality) and the `DetectionService` that persists immutable `Finding` rows.
-- `app/scoring`: deterministic, explainable quality scoring (Task 5). `compute_quality_score` produces a 0-100 score, an A-F grade, and a per-kind / per-severity / per-column breakdown with both detection and data-error confidences; `ScoringService` persists immutable `QualityScore` rows. AI severity adjustment, recommendations, drift detection, and history comparison live in later tasks.
+- `app/scoring`: deterministic, explainable quality scoring (Task 5). `compute_quality_score` produces a 0-100 score, an A-F grade, and a per-kind / per-severity / per-column breakdown with both detection and data-error confidences; `ScoringService` persists immutable `QualityScore` rows.
+- `app/history`: deterministic history comparisons (Task 6). `HistoryService` reads the immutable Task 2-5 rows for two dataset versions and persists immutable `HistoryComparison` rows; lineage is computed on demand.
+- `app/ai`: provider-independent AI reasoning (Task 7). `ReasoningService` reads the Task 4 findings bound to the latest profile, calls the configured `LLMProvider`, and persists immutable `AIInterpretation` rows. Real provider SDKs land in a later task.
+- `app/recommendations`: deterministic recommendation rule engine (Task 8). `RecommendationService` consumes the same Task 4 findings and persists immutable, **preview-only** `Recommendation` rows. The rule engine never executes code on the dataset; the apply step lands in Task 9.
 - `app/storage`: pluggable `FileStorage` interface with a `LocalFileStorage` implementation (staging, key-validated promote, delete, read-only `path_for`).
 - `app/services`: orchestration (`DatasetService`) that wires storage, validator, readers, repository, and the session boundary.
 - `migrations/`: Alembic environment and revisions against `app.db.base.Base.metadata`.
@@ -116,6 +134,8 @@ A `FileStorage` protocol lets the service interface stay constant while later ta
 - Profiling is read-only: it never mutates the original file, so compensation only needs to roll back the inserted `dataset_profiles` / `column_profiles` rows.
 - Detection is also read-only: it never mutates the original file or the profile rows, so compensation only needs to roll back the inserted `findings` rows. Scoring and history are read-only as well: they read the persisted profile / score rows and persist fresh immutable score and history comparison rows in single transactions.
 - Scoring is also read-only: it never mutates the original file, profile rows, or finding rows; compensation only needs to roll back the inserted `quality_scores` row.
+- Recommendations are read-only: the rule engine consumes persisted Task 4 findings and persists fresh immutable `Recommendation` rows in a single transaction; the original file, profile rows, finding rows, and score rows are never mutated. All recommendations carry `preview_only=True` so any actual transformation requires the Task 9 validation apply step before a new immutable dataset version is created.
+- History comparisons and AI reasoning are also read-only: they read the immutable upstream rows and persist fresh immutable rows in single transactions.
 - Authentication is not implemented. Production data endpoints will require an explicit auth/tenant design before exposure.
 
 ## Deployment

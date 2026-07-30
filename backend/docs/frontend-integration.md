@@ -1,6 +1,6 @@
 # Future frontend integration contract
 
-> **Implementation status:** `GET /health`, `GET /health/ready`, and the dataset ingestion, profiling, detection, scoring, and history endpoints exist through Task 6. Recommendation, validation, analysis-job, and AI endpoints remain planned. No frontend has been created.
+> **Implementation status:** `GET /health`, `GET /health/ready`, dataset ingestion, profiling, detection, scoring, history, AI interpretation, and recommendation endpoints exist through Task 8. The Task 8 recommendation endpoints (`POST /datasets/{dataset_id}/recommendations`, `GET /datasets/{dataset_id}/recommendations/{recommendation_id}`, `GET /datasets/{dataset_id}/recommendations`) are implemented and **preview-only**; validation, analysis-job, durable apply, and frontend work remain planned. No frontend has been created.
 
 ## Transport and discovery
 
@@ -77,20 +77,26 @@ Display `message`; use `code` for behavior; map field-level `details` to forms w
 | `GET /datasets` | 2 | Implemented |
 | `GET /datasets/{dataset_id}` | 2 | Implemented |
 | `GET /datasets/{dataset_id}/versions` | 2 | Implemented |
-| `POST /datasets/{dataset_id}/profile` | 3 | Planned |
-| `GET /datasets/{dataset_id}/profile` | 3 | Planned |
 | `POST /datasets/{dataset_id}/profile` | 3 | Implemented |
 | `GET /datasets/{dataset_id}/profile` | 3 | Implemented |
+| `GET /datasets/{dataset_id}/versions/{version_id}/profile` | 3 | Implemented |
 | `GET /datasets/{dataset_id}/profiles` | 3 | Implemented |
 | `POST /datasets/{dataset_id}/detections` | 4 | Implemented |
 | `GET /datasets/{dataset_id}/detections` | 4 | Implemented |
 | `POST /datasets/{dataset_id}/scores` | 5 | Implemented |
 | `GET /datasets/{dataset_id}/score` | 5 | Implemented |
+| `GET /datasets/{dataset_id}/versions/{version_id}/score` | 5 | Implemented |
 | `GET /datasets/{dataset_id}/scores` | 5 | Implemented |
-| `POST /datasets/{dataset_id}/analyze` | 4/10 | Planned |
-| `GET /datasets/{dataset_id}/findings` | 4/10 | Planned |
-| `GET /datasets/{dataset_id}/findings/{finding_id}` | 4/10 | Planned |
-| `GET /datasets/{dataset_id}/recommendations` | 8/10 | Planned |
+| `POST /datasets/{dataset_id}/comparisons` | 6 | Implemented |
+| `GET /datasets/{dataset_id}/comparisons/{comparison_id}` | 6 | Implemented |
+| `GET /datasets/{dataset_id}/comparisons` | 6 | Implemented |
+| `GET /datasets/{dataset_id}/lineage` | 6 | Implemented |
+| `POST /datasets/{dataset_id}/interpretations` | 7 | Implemented |
+| `GET /datasets/{dataset_id}/interpretations/{interpretation_id}` | 7 | Implemented |
+| `GET /datasets/{dataset_id}/interpretations` | 7 | Implemented |
+| `POST /datasets/{dataset_id}/recommendations` | 8 | Implemented (preview-only) |
+| `GET /datasets/{dataset_id}/recommendations/{recommendation_id}` | 8 | Implemented (preview-only) |
+| `GET /datasets/{dataset_id}/recommendations` | 8 | Implemented (preview-only) |
 | `POST /recommendations/{id}/validate` | 9/10 | Planned |
 | `POST /recommendations/{id}/apply` | after validation/approval | Planned |
 | `POST /datasets/compare` | 6/10 | Planned |
@@ -136,7 +142,7 @@ The frontend retrieves findings by dataset/version with filters for severity, de
 
 ## Planned recommendation and validation UX
 
-Recommendations are constrained operations (for example `map_values`) with rationale, assumptions, confidence, linked findings, and lifecycle status. The UI must never run returned text as code. Before enabling Apply, call validation and show impact:
+Recommendations are constrained operations (for example `map_values`) with rationale, assumptions, confidence, linked findings, and lifecycle status. The UI must never run returned text as code. In Task 8 every recommendation carries `preview_only=true` so the UI must disable Apply until the Task 9 validation pass succeeds. A recommendation row exposes the deterministic rule engine's structured payload: `kind`, `severity`, `title`, `rationale`, `affected_columns`, `supporting_finding_ids`, `confidence`, `priority`, `operation { kind, params, preview_only }`, and a JSONB `components` breakdown that includes the latest score id, the latest AI interpretation id (if any), and the source finding summaries. Before enabling Apply, call validation and show impact:
 
 ```json
 {
