@@ -59,6 +59,14 @@ class ProfilingService:
         self.profiler = profiler
         self.settings = settings
 
+    def profile_latest_version(self, dataset_id: UUID) -> DatasetProfile:
+        """Compute a fresh profile for the most recent dataset version."""
+
+        version = self._resolve_latest_version(dataset_id)
+        if version is None:
+            raise DatasetNotProfileableError()
+        return self.profile_dataset(dataset_id, version)
+
     def profile_dataset(
         self,
         dataset_id: UUID,

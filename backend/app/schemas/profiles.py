@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Literal
 from uuid import UUID
 
 from pydantic import Field
 
 from app.schemas.common import ApiModel
-from app.profiling.types import ColumnSamplingFlag as _SamplingFlag
+from app.schemas.datasets import Pagination
 
 
 ColumnSamplingFlag = Literal["full", "sampled"]
@@ -74,4 +74,4 @@ class DatasetProfileResponse(ApiModel):
 
 class DatasetProfileListResponse(ApiModel):
     items: list[DatasetProfileResponse]
-    pagination: "Pagination"  # noqa: F821  - forward ref for type checking
+    pagination: Pagination

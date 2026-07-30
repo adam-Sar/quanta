@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Quanta Data Reliability API"
-    app_version: str = "0.2.0"
+    app_version: str = "0.3.0"
     environment: Literal["development", "test", "staging", "production"] = "development"
     debug: bool = False
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
@@ -49,7 +49,11 @@ class Settings(BaseSettings):
 
     profile_default_sample_rows: int = Field(default=100_000, ge=1_000, le=10_000_000)
     profile_top_values_limit: int = Field(default=10, ge=1, le=100)
-    profile_max_bytes_in_memory: int = Field(default=256 * 1024 * 1024, ge=16 * 1024 * 1024, le=4 * 1024 * 1024 * 1024)
+    profile_max_bytes_in_memory: int = Field(
+        default=256 * 1024 * 1024,
+        ge=16 * 1024 * 1024,
+        le=4 * 1024 * 1024 * 1024,
+    )
     profile_null_threshold: float = Field(default=0.5, ge=0.0, le=1.0)
 
     @property
