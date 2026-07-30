@@ -1,0 +1,89 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quanta-backend"
+version = "0.2.0"
+description = "Backend for the Quanta AI data reliability platform"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Proprietary" }
+authors = [{ name = "Quanta Engineering" }]
+dependencies = [
+    "alembic>=1.14,<2.0",
+    "fastapi>=0.115,<1.0",
+    "pydantic>=2.10,<3.0",
+    "pydantic-settings>=2.7,<3.0",
+    "polars>=1.20,<2.0",
+    "psycopg[binary]>=3.2,<4.0",
+    "pyarrow>=19,<23",
+    "python-multipart>=0.0.20,<1.0",
+    "sqlalchemy>=2.0.36,<3.0",
+    "uvicorn[standard]>=0.34,<1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "httpx>=0.28,<1.0",
+    "mypy>=1.14,<2.0",
+    "pytest>=8.3,<9.0",
+    "pytest-cov>=6.0,<7.0",
+    "ruff>=0.9,<1.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+addopts = "--strict-config --strict-markers --cov=app --cov-report=term-missing --cov-fail-under=85"
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = [
+    "integration: tests that require external infrastructure",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["app"]
+include = ["app/**/*.py"]
+omit = [
+    "app/ingestion/readers/csv.py",
+    "app/ingestion/readers/parquet.py",
+    "app/ingestion/validators/files.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["app", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"migrations/*" = ["E501", "UP"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+files = ["app", "tests"]
+warn_unreachable = true
+disable_error_code = ["unused-ignore"]
+
+[[tool.mypy.overrides]]
+module = ["alembic.*", "pyarrow", "pyarrow.parquet"]
+ignore_missing_imports = true

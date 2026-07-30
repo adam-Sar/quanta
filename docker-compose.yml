@@ -1,0 +1,52 @@
+name: quanta
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: quanta
+      POSTGRES_USER: quanta
+      POSTGRES_PASSWORD: quanta
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - quanta-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quanta -d quanta"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./backend
+    environment:
+      ENVIRONMENT: development
+      LOG_FORMAT: json
+      DATABASE_URL: postgresql+psycopg://quanta:quanta@postgres:5432/quanta
+      STORAGE_PATH: /app/var/storage
+    command: ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - quanta-storage:/app/var/storage
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready', timeout=2)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  quanta-postgres-data:
+  quanta-storage:
