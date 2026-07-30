@@ -20,6 +20,24 @@ class ProfileRepository:
     def add(self, profile: DatasetProfile) -> None:
         self.session.add(profile)
 
+    def get(self, profile_id: UUID) -> DatasetProfile | None:
+        statement = (
+            select(DatasetProfile)
+            .where(DatasetProfile.id == profile_id)
+            .options(selectinload(DatasetProfile.columns))
+        )
+        return self.session.scalar(statement)
+
+    def get_latest_for_dataset(self, dataset_id: UUID) -> DatasetProfile | None:
+        statement = (
+            select(DatasetProfile)
+            .where(DatasetProfile.dataset_id == dataset_id)
+            .options(selectinload(DatasetProfile.columns))
+            .order_by(DatasetProfile.created_at.desc(), DatasetProfile.id.desc())
+            .limit(1)
+        )
+        return self.session.scalar(statement)
+
     def get_latest_for_version(self, dataset_version_id: UUID) -> DatasetProfile | None:
         statement = (
             select(DatasetProfile)

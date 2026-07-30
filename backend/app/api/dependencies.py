@@ -9,8 +9,10 @@ from sqlalchemy.orm import Session
 
 from app.core.config import Settings, get_settings
 from app.db.repositories.datasets import DatasetRepository
+from app.db.repositories.findings import FindingRepository
 from app.db.repositories.profiles import ProfileRepository
 from app.db.session import get_db
+from app.detection.service import DetectionService
 from app.ingestion.readers import CsvMetadataReader, MetadataReaderRegistry, ParquetMetadataReader
 from app.ingestion.types import DatasetFormat
 from app.ingestion.validators import DatasetFileValidator
@@ -56,5 +58,19 @@ def get_profiling_service(
         repository=ProfileRepository(session),
         storage=LocalFileStorage(settings.storage_path),
         profiler=profiler,
+        settings=settings,
+    )
+
+
+def get_detection_service(
+    session: Annotated[Session, Depends(get_db)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> DetectionService:
+    """Compose the Task 4 detection service with persistence."""
+
+    return DetectionService(
+        session=session,
+        repository=FindingRepository(session),
+        profile_repository=ProfileRepository(session),
         settings=settings,
     )

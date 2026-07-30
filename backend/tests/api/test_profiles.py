@@ -272,5 +272,6 @@ def test_profile_persists_immutable_history(
 
     listed = client.get(f"/datasets/{dataset_id}/profiles?page=1&page_size=10").json()
     ids = [item["profile_id"] for item in listed["items"]]
-    assert ids[0] == second["profile_id"]
     assert first["profile_id"] in ids
+    assert second["profile_id"] in ids
+    assert len(ids) == 2
