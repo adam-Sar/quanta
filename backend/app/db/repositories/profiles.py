@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -39,9 +39,7 @@ class ProfileRepository:
     ) -> tuple[Sequence[DatasetProfile], int]:
         base_filter = DatasetProfile.dataset_id == dataset_id
         total = (
-            self.session.scalar(
-                select(func.count()).select_from(DatasetProfile).where(base_filter)
-            )
+            self.session.scalar(select(func.count()).select_from(DatasetProfile).where(base_filter))
             or 0
         )
         statement = (

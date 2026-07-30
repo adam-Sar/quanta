@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 from collections.abc import Iterator
+from typing import cast
 
 import pytest
 from fastapi import FastAPI
@@ -117,7 +118,8 @@ def _create_dataset(
         },
     )
     assert response.status_code == 201, response.text
-    return response.json()["id"]
+    payload = response.json()
+    return cast(str, payload["id"])
 
 
 def test_post_profile_creates_run_and_returns_201(
@@ -252,9 +254,7 @@ def test_list_profiles_unknown_dataset_returns_404(
     client: TestClient,
     profile_environment: None,
 ) -> None:
-    response = client.get(
-        "/datasets/00000000-0000-0000-0000-000000000000/profiles"
-    )
+    response = client.get("/datasets/00000000-0000-0000-0000-000000000000/profiles")
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "dataset_not_found"
 

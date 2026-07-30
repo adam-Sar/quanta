@@ -9,9 +9,11 @@ creates a new row rather than mutating an existing one.
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
+    JSON,
     BigInteger,
     DateTime,
     Enum,
@@ -22,11 +24,15 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PostgreSQLUUID
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID as PostgreSQLUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.profiling.types import ColumnSamplingFlag
+
+# Use JSONB on PostgreSQL but fall back to JSON (text) on SQLite for tests.
+_ProfileMetrics = JSON().with_variant(JSONB(), "postgresql")
 
 
 class DatasetProfile(Base):
@@ -70,7 +76,7 @@ class DatasetProfile(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
-    columns: Mapped[list["ColumnProfile"]] = relationship(
+    columns: Mapped[list[ColumnProfile]] = relationship(
         back_populates="dataset_profile",
         cascade="all, delete-orphan",
         passive_deletes=True,
@@ -101,6 +107,6 @@ class ColumnProfile(Base):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     ordinal_position: Mapped[int] = mapped_column(Integer, nullable=False)
-    metrics: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    metrics: Mapped[dict[str, Any]] = mapped_column(_ProfileMetrics, nullable=False)
 
     dataset_profile: Mapped[DatasetProfile] = relationship(back_populates="columns")

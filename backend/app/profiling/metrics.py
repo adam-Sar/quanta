@@ -18,9 +18,10 @@ is not used. No distribution fitting, no ML, no skew/kurtosis in Task 3.
 from __future__ import annotations
 
 import math
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
+from uuid import UUID
 
 import polars as pl
 
@@ -48,8 +49,8 @@ def _iso(value: datetime | None) -> str | None:
     if value is None:
         return None
     if value.tzinfo is None:
-        value = value.replace(tzinfo=timezone.utc)
-    return value.astimezone(timezone.utc).isoformat()
+        value = value.replace(tzinfo=UTC)
+    return value.astimezone(UTC).isoformat()
 
 
 def _jsonable(value: Any) -> Any:
@@ -82,12 +83,7 @@ def _is_temporal(dtype: pl.DataType) -> bool:
 
 
 def _is_string(dtype: pl.DataType) -> bool:
-    return (
-        dtype == pl.String
-        or dtype == pl.Categorical
-        or dtype == pl.Enum
-        or dtype == pl.Binary
-    )
+    return dtype == pl.String or dtype == pl.Categorical or dtype == pl.Enum or dtype == pl.Binary
 
 
 def _stringify(value: Any) -> str | None:
@@ -136,12 +132,13 @@ def _numeric_stats(series: pl.Series) -> NumericColumnStats:
     if cleaned.len() == 0:
         return NumericColumnStats()
     try:
-        min_value = float(cleaned.min())
-        max_value = float(cleaned.max())
-        mean_value = float(cleaned.mean())
-        median_value = float(cleaned.median())
-        std_deviation = float(cleaned.std()) if cleaned.len() > 1 else 0.0
-        sum_value = float(cleaned.sum())
+        min_value = float(cast("float | int", cleaned.min()))
+        max_value = float(cast("float | int", cleaned.max()))
+        mean_value = float(cast("float | int", cleaned.mean()))
+        median_value = float(cast("float | int", cleaned.median()))
+        std_raw = cast("float | None", cleaned.std())
+        std_deviation = float(std_raw) if cleaned.len() > 1 and std_raw is not None else 0.0
+        sum_value = float(cast("float | int", cleaned.sum()))
     except Exception:  # pragma: no cover - defensive
         return NumericColumnStats()
     return NumericColumnStats(
@@ -159,8 +156,10 @@ def _temporal_stats(series: pl.Series) -> TemporalColumnStats:
     if cleaned.len() == 0:
         return TemporalColumnStats()
     try:
-        min_value = _iso(cleaned.min())
-        max_value = _iso(cleaned.max())
+        min_raw = cast("datetime | None", cleaned.min())
+        max_raw = cast("datetime | None", cleaned.max())
+        min_value = _iso(min_raw)
+        max_value = _iso(max_raw)
     except Exception:  # pragma: no cover - defensive
         return TemporalColumnStats()
     return TemporalColumnStats(min_value=min_value, max_value=max_value)
@@ -178,9 +177,9 @@ def _string_stats(series: pl.Series) -> StringLengthStats:
         if lengths.is_empty():
             return StringLengthStats()
         return StringLengthStats(
-            min_length=int(lengths.min()),
-            max_length=int(lengths.max()),
-            mean_length=float(lengths.mean()),
+            min_length=int(cast("int | float", lengths.min())),
+            max_length=int(cast("int | float", lengths.max())),
+            mean_length=float(cast("int | float", lengths.mean())),
         )
     except Exception:  # pragma: no cover - defensive
         return StringLengthStats()
@@ -197,7 +196,8 @@ def _column_metrics(
     total = series.len()
     null_count = int(series.null_count())
     non_null_count = total - null_count
-    distinct = int(series.n_unique()) if total > 0 else 0
+    distinct_source = series.drop_nulls()
+    distinct = int(distinct_source.n_unique()) if distinct_source.len() > 0 else 0
     return ColumnProfileResult(
         name=name,
         ordinal_position=ordinal_position,
@@ -307,8 +307,6 @@ class DatasetProfiler(DatasetMetadataReader):
         dataset_id: UUID | None = None,
         dataset_version_id: UUID | None = None,
     ) -> DatasetProfileResult:
-        import time
-
         from uuid import uuid4
 
         if dataset_id is None:
@@ -316,21 +314,21 @@ class DatasetProfiler(DatasetMetadataReader):
         if dataset_version_id is None:
             dataset_version_id = uuid4()
 
+        import time
+
         started = time.perf_counter()
-        started_at = datetime.now(timezone.utc)
+        started_at = datetime.now(UTC)
         builder = _PolarsFrameBuilder(
             sample_size=self.sample_size,
             csv_infer_length=self.csv_infer_length,
         )
-        frame, total, sampled = builder.build(dataset_format, path)
+        frame, _total, sampled = builder.build(dataset_format, path)
         sample_size = frame.height
         columns: list[ColumnProfileResult] = []
         for ordinal, name in enumerate(frame.columns, start=1):
             series = frame.get_column(name)
-            columns.append(
-                _column_metrics(series, ordinal, top_values_limit=self.top_values_limit)
-            )
-        completed_at = datetime.now(timezone.utc)
+            columns.append(_column_metrics(series, ordinal, top_values_limit=self.top_values_limit))
+        completed_at = datetime.now(UTC)
         duration_ms = int((time.perf_counter() - started) * 1000)
         return DatasetProfileResult(
             dataset_id=dataset_id,

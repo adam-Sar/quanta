@@ -11,7 +11,11 @@ from app.ingestion.types import StagedUpload
 
 
 class FileStorage(Protocol):
-    """Operations required by ingestion; object storage can implement the same boundary."""
+    """Operations required by ingestion and downstream readers.
+
+    The read-only ``path_for`` helper lets services like profiling
+    inspect the original file without exposing the storage root.
+    """
 
     def stage(
         self,
@@ -28,6 +32,8 @@ class FileStorage(Protocol):
     def discard_stage(self, staged: StagedUpload) -> None: ...
 
     def delete(self, storage_key: str) -> None: ...
+
+    def path_for(self, storage_key: str) -> Path: ...
 
 
 class LocalFileStorage:

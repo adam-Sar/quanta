@@ -6,9 +6,9 @@ import logging
 import time
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Generic, TypeVar
 from uuid import UUID, uuid4
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
@@ -31,7 +31,6 @@ from app.services.exceptions import DatasetNotFoundError
 from app.storage.files import FileStorage
 
 logger = logging.getLogger(__name__)
-T = TypeVar("T")
 
 
 class ProfilingService:
@@ -62,6 +61,8 @@ class ProfilingService:
     def profile_latest_version(self, dataset_id: UUID) -> DatasetProfile:
         """Compute a fresh profile for the most recent dataset version."""
 
+        if not self._dataset_exists(dataset_id):
+            raise DatasetNotFoundError(dataset_id)
         version = self._resolve_latest_version(dataset_id)
         if version is None:
             raise DatasetNotProfileableError()
@@ -113,6 +114,7 @@ class ProfilingService:
                 started_at=now,
                 completed_at=now,
                 duration_ms=duration_ms,
+                created_at=now,
             )
             column_payloads = to_column_metrics_dicts(result.columns)
             for payload in column_payloads:
@@ -133,6 +135,8 @@ class ProfilingService:
         return profile
 
     def get_latest(self, dataset_id: UUID) -> DatasetProfile | None:
+        if not self._dataset_exists(dataset_id):
+            return None
         version = self._resolve_latest_version(dataset_id)
         if version is None:
             return None
@@ -155,7 +159,8 @@ class ProfilingService:
     ) -> tuple[list[DatasetProfile], int]:
         if not self._dataset_exists(dataset_id):
             raise DatasetNotFoundError(dataset_id)
-        return self.repository.list_for_dataset(dataset_id, offset=offset, limit=limit)
+        items, total = self.repository.list_for_dataset(dataset_id, offset=offset, limit=limit)
+        return list(items), total
 
     # ------------------------------------------------------------------
     # Helpers
@@ -169,16 +174,12 @@ class ProfilingService:
             raise InvalidProfileStateError("invalid_storage_key") from exc
 
     def _dataset_exists(self, dataset_id: UUID) -> bool:
-        statement = self.session.execute(
-            self.session.query(DatasetVersion).filter(
-                DatasetVersion.dataset_id == dataset_id
-            ).statement.with_only_columns(DatasetVersion.id).limit(1)
+        statement = (
+            select(DatasetVersion.id).where(DatasetVersion.dataset_id == dataset_id).limit(1)
         )
-        return statement.first() is not None
+        return self.session.scalar(statement) is not None
 
     def _resolve_latest_version(self, dataset_id: UUID) -> DatasetVersion | None:
-        from sqlalchemy import select
-
         statement = (
             select(DatasetVersion)
             .where(DatasetVersion.dataset_id == dataset_id)
@@ -188,8 +189,6 @@ class ProfilingService:
         return self.session.scalar(statement)
 
     def _ensure_version(self, dataset_id: UUID, version_id: UUID) -> DatasetVersion:
-        from sqlalchemy import select
-
         version = self.session.scalar(
             select(DatasetVersion).where(
                 DatasetVersion.id == version_id,

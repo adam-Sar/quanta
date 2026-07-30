@@ -34,9 +34,7 @@ def upgrade() -> None:
         sa.Column("sample_size", sa.BigInteger(), nullable=False),
         sa.Column(
             "sampled",
-            postgresql.ENUM(
-                *_SAMPLING_FLAG_VALUES, name="column_sampling_flag", create_type=False
-            ),
+            postgresql.ENUM(*_SAMPLING_FLAG_VALUES, name="column_sampling_flag", create_type=False),
             nullable=False,
         ),
         sa.Column(
@@ -102,9 +100,7 @@ def upgrade() -> None:
         sa.UniqueConstraint(
             "dataset_profile_id", "ordinal_position", name="uq_column_profiles_ordinal"
         ),
-        sa.UniqueConstraint(
-            "dataset_profile_id", "name", name="uq_column_profiles_name"
-        ),
+        sa.UniqueConstraint("dataset_profile_id", "name", name="uq_column_profiles_name"),
     )
     op.create_index(
         "ix_column_profiles_dataset_profile",
@@ -119,9 +115,7 @@ def downgrade() -> None:
 
     op.drop_index("ix_column_profiles_dataset_profile", table_name="column_profiles")
     op.drop_table("column_profiles")
-    op.drop_index(
-        "ix_dataset_profiles_version_created", table_name="dataset_profiles"
-    )
+    op.drop_index("ix_dataset_profiles_version_created", table_name="dataset_profiles")
     op.drop_index("ix_dataset_profiles_dataset", table_name="dataset_profiles")
     op.drop_table("dataset_profiles")
 

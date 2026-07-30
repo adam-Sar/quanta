@@ -108,7 +108,7 @@ class DatasetVersionProfile:
     started_at: str
     completed_at: str
     duration_ms: int
-    columns: tuple["PersistedColumnProfile", ...]
+    columns: tuple[PersistedColumnProfile, ...]
 
 
 @dataclass(frozen=True, slots=True)

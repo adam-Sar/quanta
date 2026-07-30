@@ -6,9 +6,11 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
+from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_profiling_service
 from app.db.models.profile import DatasetProfile
+from app.db.session import get_db
 from app.profiling.service import ProfilingService, to_api_profile
 from app.schemas.common import ErrorResponse
 from app.schemas.datasets import Pagination
@@ -99,6 +101,15 @@ def _pagination(page: int, page_size: int, total_items: int) -> Pagination:
     )
 
 
+def _dataset_exists(session: Session, dataset_id: UUID) -> bool:
+    from sqlalchemy import func, select
+
+    from app.db.models.dataset import DatasetVersion
+
+    statement = select(func.count(DatasetVersion.id)).where(DatasetVersion.dataset_id == dataset_id)
+    return bool(session.scalar(statement))
+
+
 @router.post(
     "/{dataset_id}/profile",
     response_model=DatasetProfileResponse,
@@ -115,9 +126,14 @@ def _pagination(page: int, page_size: int, total_items: int) -> Pagination:
 def create_dataset_profile(
     dataset_id: UUID,
     service: Annotated[ProfilingService, Depends(get_profiling_service)],
+    session: Annotated[Session, Depends(get_db)],
 ) -> DatasetProfileResponse:
     """Compute a fresh deterministic profile and persist a new row."""
 
+    if not _dataset_exists(session, dataset_id):
+        from app.services.exceptions import DatasetNotFoundError
+
+        raise DatasetNotFoundError(dataset_id)
     profile = service.profile_latest_version(dataset_id)
     return _to_profile_response(profile)
 
@@ -135,9 +151,14 @@ def create_dataset_profile(
 def get_dataset_profile(
     dataset_id: UUID,
     service: Annotated[ProfilingService, Depends(get_profiling_service)],
+    session: Annotated[Session, Depends(get_db)],
 ) -> DatasetProfileResponse:
     """Return the most recently created profile for the dataset's latest version."""
 
+    if not _dataset_exists(session, dataset_id):
+        from app.services.exceptions import DatasetNotFoundError
+
+        raise DatasetNotFoundError(dataset_id)
     profile = service.get_latest(dataset_id)
     if profile is None:
         from app.profiling.exceptions import DatasetNotProfileableError
@@ -160,9 +181,14 @@ def get_dataset_version_profile(
     dataset_id: UUID,
     version_id: UUID,
     service: Annotated[ProfilingService, Depends(get_profiling_service)],
+    session: Annotated[Session, Depends(get_db)],
 ) -> DatasetProfileResponse:
     """Return the most recently created profile for a specific immutable version."""
 
+    if not _dataset_exists(session, dataset_id):
+        from app.services.exceptions import DatasetNotFoundError
+
+        raise DatasetNotFoundError(dataset_id)
     profile = service.get_for_version(dataset_id, version_id)
     if profile is None:
         from app.profiling.exceptions import DatasetNotProfileableError
@@ -181,11 +207,16 @@ def get_dataset_version_profile(
 def list_dataset_profiles(
     dataset_id: UUID,
     service: Annotated[ProfilingService, Depends(get_profiling_service)],
+    session: Annotated[Session, Depends(get_db)],
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=_DEFAULT_PAGE_SIZE, ge=1, le=_MAX_PAGE_SIZE),
 ) -> DatasetProfileListResponse:
     """Return a paginated list of profile runs ordered by creation time desc."""
 
+    if not _dataset_exists(session, dataset_id):
+        from app.services.exceptions import DatasetNotFoundError
+
+        raise DatasetNotFoundError(dataset_id)
     profiles, total_items = service.list_for_dataset(
         dataset_id,
         offset=(page - 1) * page_size,
