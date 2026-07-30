@@ -1,6 +1,6 @@
 # Quanta — AI Data Reliability Platform
 
-Quanta is a production-oriented data quality and reliability system. Deterministic data engineering and statistical methods establish **what happened**; a later AI layer will interpret meaning, likely causes, importance, and safe next actions.
+Quanta is a production-oriented data quality and reliability system. Deterministic data engineering and statistical methods establish **what happened**; a provider-independent AI layer interprets meaning, likely causes, importance, and safe next actions. Recommendations, validation, and durable analysis jobs land in later tasks.
 
 ## Current implementation
 
@@ -13,12 +13,14 @@ What is implemented today:
 - Dataset profiling (Task 3): deterministic Polars-based column metrics over a bounded sample (default 100 000 rows) of the original upload. Per-column JSONB metrics (null counts/rates, distinct counts/rates, numeric min/max/mean/median/std/sum, temporal min/max, string-length min/max/mean, top values, sampling flag). Persisted as immutable `dataset_profiles` and `column_profiles` rows. Exposed via `POST /datasets/{id}/profile`, `GET /datasets/{id}/profile`, `GET /datasets/{id}/versions/{version_id}/profile`, and `GET /datasets/{id}/profiles`.
 - Dataset detection (Task 4): five threshold-driven deterministic detectors (missingness, duplicates, invalid values, outliers, cardinality) that produce immutable `findings` rows bound to the latest profile. Exposed via `POST /datasets/{id}/detections` (201) and `GET /datasets/{id}/detections` (200 paginated list).
 - Dataset scoring (Task 5): deterministic, explainable quality scoring that aggregates the Task 4 findings into a 0–100 score and an A–F grade, with a JSONB breakdown by kind / severity / column and per-finding `detection_confidence` and `data_error_confidence`. Persisted as immutable `quality_scores` rows. Exposed via `POST /datasets/{id}/scores` (201), `GET /datasets/{id}/score` (200), `GET /datasets/{id}/versions/{version_id}/score` (200), and `GET /datasets/{id}/scores` (200 paginated list). Full formula in `backend/docs/scoring.md`.
+- Dataset history (Task 6): deterministic history comparisons and lineage between dataset versions. Reads the immutable Task 2-5 rows for two versions, computes a decomposable `DatasetComparison` (schema diff + numeric/categorical drift + score drift), and persists an immutable `history_comparisons` row. Lineage is computed on demand by walking the version chain. Exposed via `POST /datasets/{id}/comparisons` (201), `GET /datasets/{id}/comparisons/{comparison_id}` (200), `GET /datasets/{id}/comparisons` (200 paginated list), and `GET /datasets/{id}/lineage` (200). Full formula in `backend/docs/history.md`.
+- AI reasoning (Task 7): provider-independent reasoning layer that consumes the Task 4 findings bound to the latest profile, builds a bounded prompt, calls the configured `LLMProvider` (default offline `NoopProvider`), validates the structured `InterpretationResponseSchema` response, and persists a fresh immutable `ai_interpretations` row. Exposed via `POST /datasets/{id}/interpretations` (201), `GET /datasets/{id}/interpretations/{interpretation_id}` (200), and `GET /datasets/{id}/interpretations` (200 paginated list). Full protocol in `backend/docs/ai-layer.md`.
 - Tests pass (opt-in integration tests skip without `RUN_DATABASE_TESTS=1`); coverage ≥ 85% on the non-omitted code; Ruff, strict mypy, and Alembic are clean.
 
 What is **not** implemented:
 
-- Trend analysis, AI interpretation, recommendation engine, validation engine, distributed jobs/Redis, authentication/authorization, or any frontend.
-- `history/`, `analysis/`, `ai/`, `recommendations/`, `validation/` packages remain intentionally unimplemented; they will be added with behavior in later tasks.
+- Recommendations, validation, frontend work, and durable analysis jobs.
+- `recommendations/`, `validation/`, `analysis/` packages remain intentionally unimplemented; they will be added with behavior in later tasks.
 
 ## Quick start
 
@@ -48,6 +50,9 @@ Then open:
 - Get a specific history comparison: `GET /datasets/{id}/comparisons/{comparison_id}`
 - List history comparison runs: `GET /datasets/{id}/comparisons`
 - Get the deterministic lineage of a dataset: `GET /datasets/{id}/lineage`
+- Run an AI interpretation on the latest detection batch: `POST /datasets/{id}/interpretations`
+- Get a specific AI interpretation: `GET /datasets/{id}/interpretations/{interpretation_id}`
+- List AI interpretation runs: `GET /datasets/{id}/interpretations`
 
 No frontend is included.
 
@@ -55,7 +60,7 @@ No frontend is included.
 
 ```text
 backend/
-  app/        FastAPI service, ingestion, profiling, detection, storage, services
+  app/        FastAPI service, ingestion, profiling, detection, scoring, history, ai, storage, services
   migrations/ Alembic environment and revisions
   tests/      unit, API, opt-in PostgreSQL integration
   docs/       architecture, backend, api, data-model, detection-engine, ai-layer, frontend-integration, development, scoring, history
