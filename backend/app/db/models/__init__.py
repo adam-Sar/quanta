@@ -2,6 +2,7 @@
 
 from app.db.models.dataset import Dataset, DatasetColumn, DatasetVersion
 from app.db.models.finding import Finding
+from app.db.models.history_comparison import HistoryComparison
 from app.db.models.profile import ColumnProfile, DatasetProfile
 from app.db.models.quality_score import QualityScore
 
@@ -12,5 +13,6 @@ __all__ = [
     "DatasetProfile",
     "DatasetVersion",
     "Finding",
+    "HistoryComparison",
     "QualityScore",
 ]

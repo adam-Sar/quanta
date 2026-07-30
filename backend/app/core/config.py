@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Quanta Data Reliability API"
-    app_version: str = "0.5.0"
+    app_version: str = "0.6.0"
     environment: Literal["development", "test", "staging", "production"] = "development"
     debug: bool = False
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
@@ -62,6 +62,17 @@ class Settings(BaseSettings):
     score_formula_version: str = Field(default="task5-1.0", min_length=1, max_length=64)
     score_normalization_divisor_floor: int = Field(default=1, ge=1, le=10_000)
     score_max_columns_for_normalization: int = Field(default=10_000, ge=1, le=1_000_000)
+
+    # Task 6 history settings. Thresholds default to the documented
+    # values; bump ``HISTORY_FORMULA_VERSION`` when they change.
+    history_formula_version: str = Field(default="task6-1.0", min_length=1, max_length=64)
+    history_numeric_relative_change_medium: float = Field(default=0.20, ge=0.0, le=10.0)
+    history_numeric_relative_change_high: float = Field(default=0.50, ge=0.0, le=10.0)
+    history_categorical_psi_low: float = Field(default=0.10, ge=0.0, le=10.0)
+    history_categorical_psi_medium: float = Field(default=0.20, ge=0.0, le=10.0)
+    history_score_delta_low: float = Field(default=5.0, ge=0.0, le=100.0)
+    history_score_delta_medium: float = Field(default=10.0, ge=0.0, le=100.0)
+    history_score_delta_high: float = Field(default=20.0, ge=0.0, le=100.0)
 
     @property
     def max_upload_size_bytes(self) -> int:

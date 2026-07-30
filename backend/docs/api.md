@@ -1,6 +1,6 @@
 # Backend API
 
-**Current version:** 0.5.0 (Task 5 scoring). Interactive OpenAPI is available at `/docs`; machine-readable OpenAPI is `/openapi.json`.
+**Current version:** 0.6.0 (Task 6 history). Interactive OpenAPI is available at `/docs`; machine-readable OpenAPI is `/openapi.json`.
 
 ## Conventions
 
@@ -22,7 +22,7 @@ Process liveness. Does not access PostgreSQL.
 {
   "status": "ok",
   "service": "Quanta Data Reliability API",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "environment": "production",
   "timestamp": "2026-07-30T20:30:00.381Z"
 }
@@ -321,6 +321,60 @@ List every score run for a dataset, ordered by creation time desc. **404** if th
 }
 ```
 
+
+## History comparisons (Task 6)
+
+### `POST /datasets/{dataset_id}/comparisons`
+
+Compute a deterministic history comparison between two dataset versions and persist a fresh immutable `HistoryComparison` row. **404** if the dataset does not exist or one of the versions does not belong to it; **400** if the same version is supplied twice.
+
+**Body**
+
+```json
+{
+  "base_version_id": "690b72a0-b1eb-4161-b1a1-780bdd0715df",
+  "target_version_id": "7c9a3df0-9f0c-4d7a-9d8e-bf70eef21c6e"
+}
+```
+
+**201**
+
+```json
+{
+  "comparison_id": "8d4f2c40-6b29-4a90-9f8f-1dbf8cf01a2c",
+  "dataset_id": "5a8581da-0279-4a58-9f09-22f06dceaa10",
+  "base_version_id": "690b72a0-b1eb-4161-b1a1-780bdd0715df",
+  "target_version_id": "7c9a3df0-9f0c-4d7a-9d8e-bf70eef21c6e",
+  "formula_version": "task6-1.0",
+  "schema_diff": {"added": ["email"], "removed": [], "type_changes": []},
+  "distribution_drift": {"numeric": [], "categorical": []},
+  "score_drift": {
+    "base_score": 80.0, "target_score": 70.0,
+    "delta": -10.0, "absolute_delta": 10.0,
+    "base_grade": "B", "target_grade": "C",
+    "grade_changed": true
+  },
+  "created_at": "2026-07-30T10:00:00.000+00:00"
+}
+```
+
+### `GET /datasets/{dataset_id}/comparisons/{comparison_id}`
+
+Return a single persisted comparison row. **404** if the comparison does not exist.
+
+### `GET /datasets/{dataset_id}/comparisons`
+
+List every comparison run for a dataset, ordered by creation time desc. **404** if the dataset is unknown.
+
+**Query parameters**
+
+- `page` >= 1 (default 1).
+- `page_size` 1-200 (default 50).
+
+### `GET /datasets/{dataset_id}/lineage`
+
+Walk the version chain and return the ordered lineage edges. **404** if the dataset is unknown.
+
 ## Error contract
 
 All errors use:
@@ -332,7 +386,8 @@ All errors use:
 | Status | Expected codes |
 |---|---|
 | 400 | `empty_upload`, `invalid_dataset_file` |
-| 404 | `dataset_not_found` |
+| 404 | `dataset_not_found`, `version_not_found` |
+| 409 | `scoring_not_scoreable` |
 | 409 | `dataset_not_profileable`, `detection_not_profileable`, `scoring_not_scoreable`, `invalid_profile_state`, `invalid_detection_state`, `invalid_scoring_state` |
 | 413 | `upload_too_large` |
 | 415 | `unsupported_file_format` |

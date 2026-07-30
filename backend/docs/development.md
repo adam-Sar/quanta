@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-Tasks 1 (foundation), 2 (dataset ingestion), 3 (dataset profiling), 4 (deterministic detection), and 5 (quality scoring) are complete. Tasks 3–5 add immutable profile, finding, and score artifacts derived from the original upload, persisted as `DatasetProfile` / `ColumnProfile` / `Finding` / `QualityScore` rows. History, AI, recommendations, validation, and frontend work are still pending.
+Tasks 1 (foundation), 2 (dataset ingestion), 3 (dataset profiling), 4 (deterministic detection), 5 (quality scoring), and 6 (history) are complete. Tasks 3-6 add immutable profile, finding, score, and history comparison artifacts derived from the original upload, persisted as `DatasetProfile` / `ColumnProfile` / `Finding` / `QualityScore` / `HistoryComparison` rows. Trend analysis, AI, recommendations, and validation are still pending. Tasks 3–5 add immutable profile, finding, and score artifacts derived from the original upload, persisted as `DatasetProfile` / `ColumnProfile` / `Finding` / `QualityScore` rows. History, AI, recommendations, validation, and frontend work are still pending.
 
 ## Incremental delivery rule
 
@@ -13,11 +13,11 @@ For each approved task: state goal and architecture, identify files/dependencies
 1. ~~**Task 4 detection:** standardized finding model, missingness, duplicates, invalid values, robust outliers, categorical inconsistencies, then schema, distribution drift, referential integrity, and relationship discovery.~~ **Done (commit `d57a832`).** Five threshold-driven detectors persist immutable `Finding` rows bound to the latest profile, exposed via `POST/GET /datasets/{id}/detections`.
 2. ~~**Task 5 scoring:** explainable severity, two confidence concepts, and a decomposable quality score with documented formula.~~ **Done (this commit).** Deterministic formula `task5-1.0` aggregates the Task 4 findings into a 0–100 score, an A–F grade, and a JSONB breakdown (`by_kind` / `by_severity` / `by_column` / `per_finding` with `detection_confidence` and `data_error_confidence`). Exposed via `POST/GET /datasets/{id}/scores` plus `GET .../score` and `GET .../versions/{id}/score`. Full formula in `backend/docs/scoring.md`.
 3. **Task 6 history:** version/profile/schema/distribution comparison, drift detection, lineage. *(next)*
-4. **Task 7 AI:** provider abstraction and structured reasoning over findings, not datasets.
-5. **Task 8 recommendations:** constrained operations, never executable code.
-6. **Task 9 validation:** deterministic preview and side-effect checks before execution.
-7. **Task 10 API completion:** durable analysis job resource, frontend-ready contracts.
-8. **Task 11 hardening:** measured performance, security, limits, worker infrastructure if justified.
+5. **Task 8 AI:** provider abstraction and structured reasoning over findings, not datasets.
+6. **Task 9 recommendations:** constrained operations, never executable code.
+7. **Task 10 validation:** deterministic preview and side-effect checks before execution.
+8. **Task 11 API completion:** durable analysis job resource, frontend-ready contracts.
+9. **Task 12 hardening:** measured performance, security, limits, worker infrastructure if justified.
 
 ## Engineering standards
 

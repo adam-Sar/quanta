@@ -2,7 +2,7 @@
 
 ## Status
 
-This document distinguishes **implemented in Task 1, Task 2, Task 3, Task 4, and Task 5** from **planned** behavior.
+This document distinguishes **implemented in Task 1, Task 2, Task 3, Task 4, Task 5, and Task 6** from **planned** behavior.
 
 ## System principles
 
@@ -12,7 +12,7 @@ This document distinguishes **implemented in Task 1, Task 2, Task 3, Task 4, and
 4. Every transformation must pass deterministic validation and require explicit approval before creating a new immutable dataset version.
 5. API models are separate from persistence models.
 
-## Implemented component flow (Task 1 + Task 2 + Task 3 + Task 4 + Task 5)
+## Implemented component flow (Task 1 + Task 2 + Task 3 + Task 4 + Task 5 + Task 6)
 
 ```text
 HTTP client
@@ -41,6 +41,7 @@ HTTP client
           -> SQLAlchemy Session / FindingRepository
               -> findings (kind, severity, column_name, metric, value, threshold, JSONB details)
   -> /datasets/{id}/scores routes (Task 5)
+  -> /datasets/{id}/comparisons and /datasets/{id}/lineage routes (Task 6)
       -> ScoringService.score_latest / get_latest / get_for_version / list_for_dataset
           -> FindingRepository.list_for_profile (read immutable Task 4 rows)
           -> compute_quality_score (detection_confidence, data_error_confidence,
@@ -112,7 +113,7 @@ A `FileStorage` protocol lets the service interface stay constant while later ta
 - Unexpected exceptions are logged server-side and sanitized to a stable error envelope on the wire.
 - The `ingest` flow commits the database only after a successful on-disk promote; failures delete the staged file (or the promoted file) to keep storage and database in sync.
 - Profiling is read-only: it never mutates the original file, so compensation only needs to roll back the inserted `dataset_profiles` / `column_profiles` rows.
-- Detection is also read-only: it never mutates the original file or the profile rows, so compensation only needs to roll back the inserted `findings` rows.
+- Detection is also read-only: it never mutates the original file or the profile rows, so compensation only needs to roll back the inserted `findings` rows. Scoring and history are read-only as well: they read the persisted profile / score rows and persist fresh immutable score and history comparison rows in single transactions.
 - Scoring is also read-only: it never mutates the original file, profile rows, or finding rows; compensation only needs to roll back the inserted `quality_scores` row.
 - Authentication is not implemented. Production data endpoints will require an explicit auth/tenant design before exposure.
 

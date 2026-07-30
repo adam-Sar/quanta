@@ -2,7 +2,7 @@
 
 ## Status
 
-The Task 4 deterministic detection engine is implemented: five threshold-driven detectors (missingness, duplicates, invalid values, robust outliers, cardinality) persist immutable `Finding` rows bound to the latest profile. Task 5 adds an explainable quality score on top of those rows. AI severity adjustment, drift detection, and history comparison remain planned for later tasks.
+The Task 4 deterministic detection engine and the Task 6 history comparator are implemented: five threshold-driven detectors (missingness, duplicates, invalid values, robust outliers, cardinality) persist immutable `Finding` rows bound to the latest profile. Task 5 adds an explainable quality score on top of those rows. AI severity adjustment, drift detection, and history comparison remain planned for later tasks.
 
 ## Required detector contract
 

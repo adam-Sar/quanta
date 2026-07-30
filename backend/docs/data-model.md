@@ -1,8 +1,8 @@
 # Data model
 
-## Task 5 state
+## Task 6 state
 
-`0001_foundation` establishes a concrete Alembic head. `0002_dataset_ingestion` creates the durable tables for logical datasets and their immutable versions. `0003_create_dataset_profiles` adds immutable profile artifacts. `0004_create_dataset_findings` adds immutable quality findings bound to the latest profile. `0005_create_dataset_quality_scores` adds immutable quality scoring rows that aggregate the findings into a 0–100 score, a letter grade, and a documented JSONB breakdown. No AI, history, or recommendation tables exist yet.
+`0001_foundation` establishes a concrete Alembic head. `0002_dataset_ingestion` creates the durable tables for logical datasets and their immutable versions. `0003_create_dataset_profiles` adds immutable profile artifacts. `0004_create_dataset_findings` adds immutable quality findings bound to the latest profile. `0005_create_dataset_quality_scores` adds immutable quality scoring rows. `0006_create_history_comparisons` adds immutable history comparison rows with three JSONB payload columns (schema diff, distribution drift, score drift) and the documented `formula_version` that aggregate the findings into a 0–100 score, a letter grade, and a documented JSONB breakdown. No AI, trend, or recommendation tables exist yet.
 
 ### `datasets`
 

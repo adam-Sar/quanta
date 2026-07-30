@@ -37,8 +37,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "adds deterministic dataset profiling over the original file; Task 4 "
             "adds threshold-driven detection findings bound to the latest profile; "
             "Task 5 adds an explainable, decomposable quality score with two "
-            "confidence concepts. History, AI, recommendations, and validation "
-            "are introduced in later tasks."
+            "confidence concepts; Task 6 adds deterministic history "
+            "comparisons and lineage between dataset versions. AI, "
+            "recommendations, and validation are introduced in later tasks."
         ),
         debug=runtime_settings.debug,
         lifespan=lifespan,

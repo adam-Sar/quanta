@@ -10,10 +10,12 @@ from sqlalchemy.orm import Session
 from app.core.config import Settings, get_settings
 from app.db.repositories.datasets import DatasetRepository
 from app.db.repositories.findings import FindingRepository
+from app.db.repositories.history_comparisons import HistoryComparisonRepository
 from app.db.repositories.profiles import ProfileRepository
 from app.db.repositories.quality_scores import QualityScoreRepository
 from app.db.session import get_db
 from app.detection.service import DetectionService
+from app.history.service import HistoryService
 from app.ingestion.readers import CsvMetadataReader, MetadataReaderRegistry, ParquetMetadataReader
 from app.ingestion.types import DatasetFormat
 from app.ingestion.validators import DatasetFileValidator
@@ -88,5 +90,18 @@ def get_scoring_service(
         session=session,
         repository=QualityScoreRepository(session),
         finding_repository=FindingRepository(session),
+        settings=settings,
+    )
+
+
+def get_history_service(
+    session: Annotated[Session, Depends(get_db)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> HistoryService:
+    """Compose the Task 6 history service with persistence."""
+
+    return HistoryService(
+        session=session,
+        repository=HistoryComparisonRepository(session),
         settings=settings,
     )

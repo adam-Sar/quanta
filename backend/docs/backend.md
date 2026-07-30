@@ -82,24 +82,33 @@ Copy `.env.example` to `.env`; never commit `.env`. Important current settings:
 | `SCORE_FORMULA_VERSION` | Identifier persisted on every Task 5 `QualityScore` row |
 | `SCORE_NORMALIZATION_DIVISOR_FLOOR` | Reserved floor for the score normalization divisor |
 | `SCORE_MAX_COLUMNS_FOR_NORMALIZATION` | Reserved upper bound on columns used for normalization |
+| `HISTORY_FORMULA_VERSION` | Identifier persisted on every Task 6 history comparison row |
+| `HISTORY_NUMERIC_RELATIVE_CHANGE_MEDIUM` | Soft numeric drift bar |
+| `HISTORY_NUMERIC_RELATIVE_CHANGE_HIGH` | Hard numeric drift bar |
+| `HISTORY_CATEGORICAL_PSI_LOW` | PSI low band |
+| `HISTORY_CATEGORICAL_PSI_MEDIUM` | PSI high band |
+| `HISTORY_SCORE_DELTA_LOW` | Quality-score low band |
+| `HISTORY_SCORE_DELTA_MEDIUM` | Quality-score medium band |
+| `HISTORY_SCORE_DELTA_HIGH` | Quality-score high band |
 
-Storage, LLM, and Redis variables are listed as future configuration contracts but remain unused in Task 5.
+Storage, LLM, and Redis variables are listed as future configuration contracts but remain unused in Task 6.
 
 ## Structure
 
 ```text
 backend/
   app/
-    api/routes/{health,datasets,profiles,findings,scores}.py
+    api/routes/{health,datasets,profiles,findings,scores,history}.py
     core/{config,exceptions,logging,middleware}.py
     db/{base,session}.py
-    db/models/{dataset,profile,finding,quality_score}.py
-    db/repositories/{datasets,profiles,findings,quality_scores}.py
+    db/models/{dataset,profile,finding,quality_score,history_comparison}.py
+    db/repositories/{datasets,profiles,findings,quality_scores,history_comparisons}.py
     detection/{types,exceptions,detectors,service}.py
     ingestion/{types,exceptions,validators,readers}.py
     profiling/{types,exceptions,metrics,service}.py
     scoring/{types,exceptions,formula,service}.py
-    schemas/{common,datasets,health,profiles,findings,scores}.py
+    history/{types,exceptions,comparison,drift,lineage,service}.py
+    schemas/{common,datasets,health,profiles,findings,scores,history}.py
     services/{dataset_service,exceptions}.py
     storage/{files}.py
     api/{dependencies,router}.py
@@ -140,6 +149,14 @@ backend/
 2. The service reads the immutable `Finding` rows through `FindingRepository.list_for_profile`, runs `compute_quality_score` (two confidence concepts, severity weights, normalized penalty, 0–100 score, A–F grade), and writes a fresh immutable `QualityScore` row in a single transaction.
 3. Database failures roll back the row insert; the original file, profile rows, and finding rows are never mutated, so no storage compensation is needed.
 4. `GET /datasets/{dataset_id}/score`, `GET .../versions/{version_id}/score`, and `GET .../scores` return the persisted score rows without recomputing. The full formula and rationale are documented in `backend/docs/scoring.md`.
+
+## History lifecycle (Task 6)
+
+1. `POST /datasets/{dataset_id}/comparisons` (Task 6) resolves the two versions, reads the immutable column, profile, column-profile, and quality-score rows, runs `HistoryService.compare_versions`, and persists a fresh immutable `HistoryComparison` row in a single transaction.
+2. Database failures roll back the insert only; the original files, profile rows, score rows, and finding rows are never mutated.
+3. `GET /datasets/{dataset_id}/comparisons/{comparison_id}` and `GET /datasets/{dataset_id}/comparisons` return the persisted comparison rows without recomputing.
+4. `GET /datasets/{dataset_id}/lineage` walks the version chain and returns the ordered lineage edges.
+5. The deterministic formula and all thresholds are documented in `backend/docs/history.md`.
 
 ## Logging and errors
 

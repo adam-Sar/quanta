@@ -1,6 +1,6 @@
 # Future frontend integration contract
 
-> **Implementation status:** `GET /health`, `GET /health/ready`, and the dataset ingestion, profiling, detection, and scoring endpoints exist through Task 5. Recommendation, validation, analysis-job, and AI endpoints remain planned. No frontend has been created.
+> **Implementation status:** `GET /health`, `GET /health/ready`, and the dataset ingestion, profiling, detection, scoring, and history endpoints exist through Task 6. Recommendation, validation, analysis-job, and AI endpoints remain planned. No frontend has been created.
 
 ## Transport and discovery
 
