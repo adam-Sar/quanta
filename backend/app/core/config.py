@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Quanta Data Reliability API"
-    app_version: str = "0.3.0"
+    app_version: str = "0.5.0"
     environment: Literal["development", "test", "staging", "production"] = "development"
     debug: bool = False
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
@@ -55,6 +55,13 @@ class Settings(BaseSettings):
         le=4 * 1024 * 1024 * 1024,
     )
     profile_null_threshold: float = Field(default=0.5, ge=0.0, le=1.0)
+
+    # Task 5 scoring settings. The formula version is intentionally
+    # exposed so operators can verify which deterministic formula was
+    # used for a given run.
+    score_formula_version: str = Field(default="task5-1.0", min_length=1, max_length=64)
+    score_normalization_divisor_floor: int = Field(default=1, ge=1, le=10_000)
+    score_max_columns_for_normalization: int = Field(default=10_000, ge=1, le=1_000_000)
 
     @property
     def max_upload_size_bytes(self) -> int:

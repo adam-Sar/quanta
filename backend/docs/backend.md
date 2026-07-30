@@ -79,23 +79,27 @@ Copy `.env.example` to `.env`; never commit `.env`. Important current settings:
 | `PROFILE_TOP_VALUES_LIMIT` | Maximum top-values rows persisted per column |
 | `PROFILE_MAX_BYTES_IN_MEMORY` | Operator-facing safety budget for in-memory profiling |
 | `PROFILE_NULL_THRESHOLD` | Default threshold feeding the Task 4 missingness detector |
+| `SCORE_FORMULA_VERSION` | Identifier persisted on every Task 5 `QualityScore` row |
+| `SCORE_NORMALIZATION_DIVISOR_FLOOR` | Reserved floor for the score normalization divisor |
+| `SCORE_MAX_COLUMNS_FOR_NORMALIZATION` | Reserved upper bound on columns used for normalization |
 
-Storage, LLM, and Redis variables are listed as future configuration contracts but remain unused in Task 4.
+Storage, LLM, and Redis variables are listed as future configuration contracts but remain unused in Task 5.
 
 ## Structure
 
 ```text
 backend/
   app/
-    api/routes/{health,datasets,profiles,findings}.py
+    api/routes/{health,datasets,profiles,findings,scores}.py
     core/{config,exceptions,logging,middleware}.py
     db/{base,session}.py
-    db/models/{dataset,profile,finding}.py
-    db/repositories/{datasets,profiles,findings}.py
+    db/models/{dataset,profile,finding,quality_score}.py
+    db/repositories/{datasets,profiles,findings,quality_scores}.py
     detection/{types,exceptions,detectors,service}.py
     ingestion/{types,exceptions,validators,readers}.py
     profiling/{types,exceptions,metrics,service}.py
-    schemas/{common,datasets,health,profiles,findings}.py
+    scoring/{types,exceptions,formula,service}.py
+    schemas/{common,datasets,health,profiles,findings,scores}.py
     services/{dataset_service,exceptions}.py
     storage/{files}.py
     api/{dependencies,router}.py
@@ -129,6 +133,13 @@ backend/
 2. The service reads the persisted `JSONB` metrics through `to_api_profile`, runs `run_all_detectors` (missingness, duplicates, invalid values, outliers, cardinality), and writes a fresh batch of immutable `Finding` rows in a single transaction.
 3. Database failures roll back the row insert; the original file and the profile rows are never mutated, so no storage compensation is needed.
 4. `GET /datasets/{dataset_id}/detections` returns a paginated list of the new finding rows ordered by creation time desc.
+
+## Scoring lifecycle (Task 5)
+
+1. `POST /datasets/{dataset_id}/scores` resolves the latest detection batch and calls `ScoringService.score_latest`. **404** if the dataset does not exist; **409** if it exists but has no detection batch yet.
+2. The service reads the immutable `Finding` rows through `FindingRepository.list_for_profile`, runs `compute_quality_score` (two confidence concepts, severity weights, normalized penalty, 0–100 score, A–F grade), and writes a fresh immutable `QualityScore` row in a single transaction.
+3. Database failures roll back the row insert; the original file, profile rows, and finding rows are never mutated, so no storage compensation is needed.
+4. `GET /datasets/{dataset_id}/score`, `GET .../versions/{version_id}/score`, and `GET .../scores` return the persisted score rows without recomputing. The full formula and rationale are documented in `backend/docs/scoring.md`.
 
 ## Logging and errors
 

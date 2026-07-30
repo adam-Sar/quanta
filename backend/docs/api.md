@@ -1,6 +1,6 @@
 # Backend API
 
-**Current version:** 0.4.0 (Task 4 detection). Interactive OpenAPI is available at `/docs`; machine-readable OpenAPI is `/openapi.json`.
+**Current version:** 0.5.0 (Task 5 scoring). Interactive OpenAPI is available at `/docs`; machine-readable OpenAPI is `/openapi.json`.
 
 ## Conventions
 
@@ -22,7 +22,7 @@ Process liveness. Does not access PostgreSQL.
 {
   "status": "ok",
   "service": "Quanta Data Reliability API",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "environment": "production",
   "timestamp": "2026-07-30T20:30:00.381Z"
 }
@@ -246,6 +246,81 @@ List every finding row for a dataset, ordered by creation time desc. **404** if 
 }
 ```
 
+## Quality scores (Task 5)
+
+### `POST /datasets/{dataset_id}/scores`
+
+Run the deterministic scoring formula against the latest detection batch of a dataset. Persists a fresh immutable `QualityScore` row bound to the latest profile. **404** if the dataset does not exist; **409** if it exists but has no detection batch yet.
+
+**201**
+
+```json
+{
+  "score_id": "7c9a3df0-9f0c-4d7a-9d8e-bf70eef21c6e",
+  "dataset_id": "5a8581da-0279-4a58-9f09-22f06dceaa10",
+  "dataset_version_id": "690b72a0-b1eb-4161-b1a1-780bdd0715df",
+  "profile_id": "8d4f2c40-6b29-4a90-9f8f-1dbf8cf01a2c",
+  "finding_count": 3,
+  "score": 74.32,
+  "grade": "B",
+  "formula_version": "task5-1.0",
+  "components": {
+    "by_kind": {
+      "missingness": { "count": 2, "penalty_total": 0.6123, "penalty_normalized": 0.2041 }
+    },
+    "by_severity": {
+      "medium": { "count": 2, "penalty_total": 0.6123, "penalty_normalized": 0.2041 }
+    },
+    "by_column": {
+      "email": { "count": 1, "penalty_total": 0.3061, "penalty_normalized": 0.1020 }
+    },
+    "overall_penalty_total": 0.6123,
+    "overall_penalty_normalized": 0.2568,
+    "column_count": 3,
+    "per_finding": [
+      {
+        "kind": "missingness",
+        "severity": "medium",
+        "column_name": "email",
+        "metric": "null_rate",
+        "value": 0.62,
+        "threshold": 0.5,
+        "detection_confidence": 0.24,
+        "data_error_confidence": 0.829,
+        "penalty": 0.0895
+      }
+    ]
+  },
+  "created_at": "2026-07-30T09:30:00.123Z"
+}
+```
+
+### `GET /datasets/{dataset_id}/score`
+
+Return the most recently created score for the dataset's latest version. **404** if the dataset is unknown, **409** if no score run exists yet.
+
+### `GET /datasets/{dataset_id}/versions/{version_id}/score`
+
+Return the most recently created score for a specific immutable version. **404** if the dataset is unknown, **409** if the version is unknown or no score run exists yet.
+
+### `GET /datasets/{dataset_id}/scores`
+
+List every score run for a dataset, ordered by creation time desc. **404** if the dataset is unknown.
+
+**Query parameters**
+
+- `page` ≥ 1 (default 1).
+- `page_size` 1–200 (default 50).
+
+**200**
+
+```json
+{
+  "items": [ /* QualityScoreResponse objects */ ],
+  "pagination": { "page": 1, "page_size": 50, "total_items": 2, "total_pages": 1 }
+}
+```
+
 ## Error contract
 
 All errors use:
@@ -258,7 +333,7 @@ All errors use:
 |---|---|
 | 400 | `empty_upload`, `invalid_dataset_file` |
 | 404 | `dataset_not_found` |
-| 409 | `dataset_not_profileable`, `detection_not_profileable`, `invalid_profile_state`, `invalid_detection_state` |
+| 409 | `dataset_not_profileable`, `detection_not_profileable`, `scoring_not_scoreable`, `invalid_profile_state`, `invalid_detection_state`, `invalid_scoring_state` |
 | 413 | `upload_too_large` |
 | 415 | `unsupported_file_format` |
 | 422 | `validation_error` |
@@ -267,8 +342,9 @@ All errors use:
 
 Specific codes are not final; the envelope and `X-Request-ID` propagation are.
 
-## API changes since Task 3
+## API changes since Task 4
 
-- Added `POST /datasets/{dataset_id}/detections` (201) and `GET /datasets/{dataset_id}/detections` (200).
-- Added `detection_not_profileable` (409) and `invalid_detection_state` (422) codes.
+- Added `POST /datasets/{dataset_id}/scores` (201), `GET /datasets/{dataset_id}/score` (200), `GET /datasets/{dataset_id}/versions/{version_id}/score` (200), and `GET /datasets/{dataset_id}/scores` (200 paginated list).
+- Added `scoring_not_scoreable` (409) and `invalid_scoring_state` (422) codes.
+- Persisted `quality_scores` rows carry a documented `formula_version` and a JSONB `components` breakdown (per-kind / per-severity / per-column / per-finding) including both detection and data-error confidences. See `backend/docs/scoring.md` for the formula.
 - `X-Request-ID` continues to be included in the response headers of every endpoint.

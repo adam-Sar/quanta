@@ -11,6 +11,7 @@ from app.core.config import Settings, get_settings
 from app.db.repositories.datasets import DatasetRepository
 from app.db.repositories.findings import FindingRepository
 from app.db.repositories.profiles import ProfileRepository
+from app.db.repositories.quality_scores import QualityScoreRepository
 from app.db.session import get_db
 from app.detection.service import DetectionService
 from app.ingestion.readers import CsvMetadataReader, MetadataReaderRegistry, ParquetMetadataReader
@@ -18,6 +19,7 @@ from app.ingestion.types import DatasetFormat
 from app.ingestion.validators import DatasetFileValidator
 from app.profiling.metrics import DatasetProfiler
 from app.profiling.service import ProfilingService
+from app.scoring.service import ScoringService
 from app.services.dataset_service import DatasetService
 from app.storage.files import LocalFileStorage
 
@@ -72,5 +74,19 @@ def get_detection_service(
         session=session,
         repository=FindingRepository(session),
         profile_repository=ProfileRepository(session),
+        settings=settings,
+    )
+
+
+def get_scoring_service(
+    session: Annotated[Session, Depends(get_db)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> ScoringService:
+    """Compose the Task 5 scoring service with persistence."""
+
+    return ScoringService(
+        session=session,
+        repository=QualityScoreRepository(session),
+        finding_repository=FindingRepository(session),
         settings=settings,
     )

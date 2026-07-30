@@ -1,6 +1,6 @@
 # Future frontend integration contract
 
-> **Implementation status:** only `GET /health`, `GET /health/ready`, and the dataset ingestion endpoints (`POST /datasets`, `GET /datasets`, `GET /datasets/{dataset_id}`, `GET /datasets/{dataset_id}/versions`) exist in Task 2. Profiling, analysis, finding, recommendation, and validation endpoints remain planned. No frontend has been created.
+> **Implementation status:** `GET /health`, `GET /health/ready`, and the dataset ingestion, profiling, detection, and scoring endpoints exist through Task 5. Recommendation, validation, analysis-job, and AI endpoints remain planned. No frontend has been created.
 
 ## Transport and discovery
 
@@ -79,6 +79,14 @@ Display `message`; use `code` for behavior; map field-level `details` to forms w
 | `GET /datasets/{dataset_id}/versions` | 2 | Implemented |
 | `POST /datasets/{dataset_id}/profile` | 3 | Planned |
 | `GET /datasets/{dataset_id}/profile` | 3 | Planned |
+| `POST /datasets/{dataset_id}/profile` | 3 | Implemented |
+| `GET /datasets/{dataset_id}/profile` | 3 | Implemented |
+| `GET /datasets/{dataset_id}/profiles` | 3 | Implemented |
+| `POST /datasets/{dataset_id}/detections` | 4 | Implemented |
+| `GET /datasets/{dataset_id}/detections` | 4 | Implemented |
+| `POST /datasets/{dataset_id}/scores` | 5 | Implemented |
+| `GET /datasets/{dataset_id}/score` | 5 | Implemented |
+| `GET /datasets/{dataset_id}/scores` | 5 | Implemented |
 | `POST /datasets/{dataset_id}/analyze` | 4/10 | Planned |
 | `GET /datasets/{dataset_id}/findings` | 4/10 | Planned |
 | `GET /datasets/{dataset_id}/findings/{finding_id}` | 4/10 | Planned |

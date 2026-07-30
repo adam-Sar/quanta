@@ -1,8 +1,8 @@
 # Data model
 
-## Task 4 state
+## Task 5 state
 
-`0001_foundation` establishes a concrete Alembic head. `0002_dataset_ingestion` creates the durable tables for logical datasets and their immutable versions. `0003_create_dataset_profiles` adds immutable profile artifacts. `0004_create_dataset_findings` adds immutable quality findings bound to the latest profile. No AI, scoring, or recommendation tables exist yet.
+`0001_foundation` establishes a concrete Alembic head. `0002_dataset_ingestion` creates the durable tables for logical datasets and their immutable versions. `0003_create_dataset_profiles` adds immutable profile artifacts. `0004_create_dataset_findings` adds immutable quality findings bound to the latest profile. `0005_create_dataset_quality_scores` adds immutable quality scoring rows that aggregate the findings into a 0–100 score, a letter grade, and a documented JSONB breakdown. No AI, history, or recommendation tables exist yet.
 
 ### `datasets`
 
@@ -98,7 +98,24 @@ Indexes: `uq_column_profiles_name`, `uq_column_profiles_ordinal`, `ix_column_pro
 
 Indexes: `ix_findings_dataset_version`, `ix_findings_profile`, `ix_findings_kind_severity`.
 
-## Modeling rules for Task 5+
+### `quality_scores` (Task 5)
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | Default `uuid4()`. |
+| `dataset_id` | UUID NOT NULL FK → `datasets.id` ON DELETE CASCADE | Scoring scope. |
+| `dataset_version_id` | UUID NOT NULL FK → `dataset_versions.id` ON DELETE CASCADE | Version the score refers to. |
+| `profile_id` | UUID NOT NULL FK → `dataset_profiles.id` ON DELETE CASCADE | Source profile whose finding batch was scored. |
+| `finding_count` | INT NOT NULL | Findings aggregated by the run. |
+| `score` | FLOAT NOT NULL | Deterministic 0–100 quality score (see `backend/docs/scoring.md`). |
+| `grade` | enum `quality_grade` | `A`, `B`, `C`, `D`, `F` (derived from `score`). |
+| `formula_version` | VARCHAR(64) NOT NULL | Identifier of the scoring formula (current default `task5-1.0`). |
+| `components` | JSONB NOT NULL | Decomposable breakdown: `by_kind`, `by_severity`, `by_column`, `overall_penalty_total`, `overall_penalty_normalized`, `column_count`, `per_finding[]` (each entry carries `detection_confidence`, `data_error_confidence`, `penalty`). |
+| `created_at` | TIMESTAMPTZ NOT NULL DEFAULT now() | Insertion timestamp. |
+
+Indexes: `ix_quality_scores_dataset_created`, `ix_quality_scores_profile`, `ix_quality_scores_grade`.
+
+## Modeling rules for Task 6+
 
 1. UUID primary keys and timezone-aware `created_at`/`updated_at`.
 2. Foreign keys with deliberate delete behavior; no accidental cascades.
@@ -109,4 +126,4 @@ Indexes: `ix_findings_dataset_version`, `ix_findings_profile`, `ix_findings_kind
 7. Uniqueness constraints for identities and idempotency.
 8. Every migration must support a reasoned upgrade, downgrade, and review.
 
-Exact columns, enums, and retention policy will be decided with Task 5 scoring and Task 6 history rather than guessed now.
+Exact columns, enums, and retention policy for history tables (Task 6), AI artifacts (Task 7), recommendations (Task 8), and validation (Task 9) will be decided when those tasks begin rather than guessed now.
