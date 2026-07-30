@@ -1,8 +1,8 @@
 # Data model
 
-## Task 2 state
+## Task 3 state
 
-`0001_foundation` establishes a concrete Alembic head. `0002_dataset_ingestion` creates the durable tables for logical datasets and their immutable versions. No AI, detection, scoring, or recommendation tables exist yet.
+`0001_foundation` establishes a concrete Alembic head. `0002_dataset_ingestion` creates the durable tables for logical datasets and their immutable versions. `0003_create_dataset_profiles` adds immutable profile runs and JSONB per-column metrics. No AI, detection, scoring, or recommendation tables exist yet.
 
 ### `datasets`
 
@@ -50,7 +50,35 @@ Indexes: `uq_dataset_versions_storage_key`, `ix_dataset_versions_content_sha256`
 
 Indexes: `uq_dataset_columns_name`, `uq_dataset_columns_ordinal`, `ix_dataset_columns_version`.
 
-## Modeling rules for Task 3+
+### `dataset_profiles`
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | Default `uuid4()`. |
+| `dataset_id` | UUID NOT NULL FK → `datasets.id` ON DELETE CASCADE | Profile scope. |
+| `dataset_version_id` | UUID NOT NULL FK → `dataset_versions.id` ON DELETE CASCADE | Profiled version. |
+| `sample_size` | BIGINT NOT NULL | Rows actually considered (post-sample). |
+| `sampled` | enum `column_sampling_flag` | `full` or `sampled`. |
+| `started_at` | TIMESTAMPTZ NOT NULL DEFAULT now() | Run start. |
+| `completed_at` | TIMESTAMPTZ NOT NULL DEFAULT now() | Run completion. |
+| `duration_ms` | INT NOT NULL | Wall-clock milliseconds. |
+| `created_at` | TIMESTAMPTZ NOT NULL DEFAULT now() | Insertion timestamp. |
+
+Indexes: `ix_dataset_profiles_dataset`, `ix_dataset_profiles_version_created`.
+
+### `column_profiles`
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | Default `uuid4()`. |
+| `dataset_profile_id` | UUID NOT NULL FK → `dataset_profiles.id` ON DELETE CASCADE | Unique per `(name)` and per `(ordinal_position)`. |
+| `name` | VARCHAR(255) NOT NULL | Column name. |
+| `ordinal_position` | INT NOT NULL | 1-based position from the source file. |
+| `metrics` | JSONB NOT NULL | Per-column metrics: `physical_type`, `sample_size`, `non_null_count`, `null_count`, `null_rate`, `distinct_count`, `distinct_rate`, `top_values[]`, `numeric{min,max,mean,median,std,sum}`, `temporal{min,max}`, `string_length{min,max,mean}`. |
+
+Indexes: `uq_column_profiles_name`, `uq_column_profiles_ordinal`, `ix_column_profiles_dataset_profile`.
+
+## Modeling rules for Task 4+
 
 1. UUID primary keys and timezone-aware `created_at`/`updated_at`.
 2. Foreign keys with deliberate delete behavior; no accidental cascades.
@@ -61,4 +89,4 @@ Indexes: `uq_dataset_columns_name`, `uq_dataset_columns_ordinal`, `ix_dataset_co
 7. Uniqueness constraints for identities and idempotency.
 8. Every migration must support a reasoned upgrade, downgrade, and review.
 
-Exact columns, enums, and retention policy will be decided with Task 3 detection and Task 6 historical comparison rather than guessed now.
+Exact columns, enums, and retention policy will be decided with Task 4 detection and Task 6 historical comparison rather than guessed now.

@@ -15,7 +15,7 @@ copy .env.example .env
 docker compose up --build
 ```
 
-On POSIX shells use `cp` instead of `copy`. Compose starts PostgreSQL, applies the Alembic foundation and dataset ingestion migrations, and serves FastAPI on port 8000.
+On POSIX shells use `cp` instead of `copy`. Compose starts PostgreSQL, applies the Alembic foundation, dataset ingestion, and profile migrations, and serves FastAPI on port 8000.
 
 ```bash
 curl http://localhost:8000/health
@@ -51,7 +51,7 @@ alembic heads
 alembic current
 ```
 
-Run the opt-in real database test only against a disposable database:
+Run the opt-in real database tests only against a disposable database:
 
 ```powershell
 $env:RUN_DATABASE_TESTS = "1"
@@ -75,21 +75,26 @@ Copy `.env.example` to `.env`; never commit `.env`. Important current settings:
 | `MAX_UPLOAD_SIZE_MB` | Hard limit applied during streaming ingestion |
 | `UPLOAD_CHUNK_SIZE_BYTES` | Streaming chunk size for staging |
 | `CSV_INFER_SCHEMA_LENGTH` | Rows Polars uses to infer CSV schema |
+| `PROFILE_DEFAULT_SAMPLE_ROWS` | Upper bound on rows profiled per run |
+| `PROFILE_TOP_VALUES_LIMIT` | Maximum top-values rows persisted per column |
+| `PROFILE_MAX_BYTES_IN_MEMORY` | Operator-facing safety budget for in-memory profiling |
+| `PROFILE_NULL_THRESHOLD` | Reserved for Task 4+ detection hints |
 
-Storage, LLM, and Redis variables are listed as future configuration contracts but remain unused in Task 2.
+Storage, LLM, and Redis variables are listed as future configuration contracts but remain unused in Task 3.
 
 ## Structure
 
 ```text
 backend/
   app/
-    api/routes/{health,datasets}.py
+    api/routes/{health,datasets,profiles}.py
     core/{config,exceptions,logging,middleware}.py
     db/{base,session}.py
-    db/models/dataset.py
-    db/repositories/datasets.py
-    ingestion/{types,exceptions,validators,readers,types}.py
-    schemas/{common,datasets,health}.py
+    db/models/{dataset,profile}.py
+    db/repositories/{datasets,profiles}.py
+    ingestion/{types,exceptions,validators,readers}.py
+    profiling/{types,exceptions,metrics,service}.py
+    schemas/{common,datasets,health,profiles}.py
     services/{dataset_service,exceptions}.py
     storage/{files}.py
     api/{dependencies,router}.py
@@ -108,10 +113,18 @@ backend/
 5. `DatasetService.ingest` builds the new dataset/version/column entities, calls `promote` to move the staged file into its generated key, and commits the transaction.
 6. Failures roll back the database and either discard the staged file or delete the promoted file to keep storage in sync.
 
+## Profiling lifecycle (Task 3)
+
+1. `POST /datasets/{dataset_id}/profile` resolves the latest immutable dataset version and calls `ProfilingService.profile_latest_version`.
+2. The service reads the original via `FileStorage.path_for(storage_key)` (read-only).
+3. `DatasetProfiler` loads the file with Polars (`read_csv` with `infer_schema_length` or `read_parquet`), truncates to `head(sample_size)`, and computes per-column metrics (nulls, distinct, numeric, temporal, string length, top values, sampling flag).
+4. The service writes a new `DatasetProfile` row plus one `ColumnProfile` JSONB row per column in a single transaction.
+5. Database failures roll back the row insert; the original file is never mutated, so no storage compensation is needed.
+6. `GET /datasets/{dataset_id}/profile`, `GET /datasets/{dataset_id}/versions/{version_id}/profile`, and `GET /datasets/{dataset_id}/profiles` return the persisted artifacts without recomputing.
+
 ## Logging and errors
 
 Every response carries `X-Request-ID`; a safe caller-provided value is preserved. Request completion logs include method, path, status, and duration but never query/body contents. JSON errors use:
 
 ```json
 { "error": { "code": "string", "message": "string", "details": { ... } | [ ... ] | null, "request_id": "string" } }
-```

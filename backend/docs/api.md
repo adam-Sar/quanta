@@ -1,6 +1,6 @@
 # Backend API
 
-**Current version:** 0.2.0 (Task 2 ingestion). Interactive OpenAPI is available at `/docs`; machine-readable OpenAPI is `/openapi.json`.
+**Current version:** 0.3.0 (Task 3 profiling). Interactive OpenAPI is available at `/docs`; machine-readable OpenAPI is `/openapi.json`.
 
 ## Conventions
 
@@ -22,7 +22,7 @@ Process liveness. Does not access PostgreSQL.
 {
   "status": "ok",
   "service": "Quanta Data Reliability API",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "environment": "production",
   "timestamp": "2026-07-30T08:45:10.381Z"
 }
@@ -117,6 +117,79 @@ List every immutable version of a dataset ordered by `version_number` desc. **40
 }
 ```
 
+## Profiles
+
+### `POST /datasets/{dataset_id}/profile`
+
+Compute a fresh deterministic profile over the latest immutable version of the dataset. Profiling is read-only; the original file is never mutated. A new `DatasetProfile` row plus one `ColumnProfile` JSONB row per column are written in a single transaction.
+
+**201**
+
+```json
+{
+  "profile_id": "8d4f2c40-6b29-4a90-9f8f-1dbf8cf01a2c",
+  "dataset_id": "5a8581da-0279-4a58-9f09-22f06dceaa10",
+  "dataset_version_id": "690b72a0-b1eb-4161-b1a1-780bdd0715df",
+  "sample_size": 329881,
+  "sampled": "full",
+  "started_at": "2026-07-30T09:05:01.120+00:00",
+  "completed_at": "2026-07-30T09:05:01.452+00:00",
+  "duration_ms": 332,
+  "columns": [
+    {
+      "name": "id",
+      "ordinal_position": 1,
+      "metrics": {
+        "physical_type": "Int64",
+        "sample_size": 329881,
+        "non_null_count": 329881,
+        "null_count": 0,
+        "null_rate": 0.0,
+        "distinct_count": 329881,
+        "distinct_rate": 1.0,
+        "top_values": [
+          { "value": "1024", "count": 1, "frequency": 0.0000030 }
+        ],
+        "numeric": {
+          "min": 1, "max": 329881, "mean": 164941.0,
+          "median": 164941.0, "std": 95210.5, "sum": 54420589321
+        },
+        "temporal": { "min": null, "max": null },
+        "string_length": { "min": null, "max": null, "mean": null }
+      }
+    }
+  ]
+}
+```
+
+**404** if the dataset does not exist, **409** if no dataset version exists yet, **422** if the stored file cannot be read, **500** for unexpected storage failures.
+
+### `GET /datasets/{dataset_id}/profile`
+
+Return the most recently created profile for the dataset's latest version. **404** if the dataset is unknown, **409** if no profile run exists yet.
+
+### `GET /datasets/{dataset_id}/versions/{version_id}/profile`
+
+Return the most recently created profile for a specific immutable version. **404** if the dataset is unknown, **409** if the version or any profile run is unknown.
+
+### `GET /datasets/{dataset_id}/profiles`
+
+List every profile run for a dataset, ordered by creation time desc. **404** if the dataset is unknown.
+
+**Query parameters**
+
+- `page` ≥ 1 (default 1).
+- `page_size` 1–200 (default 50).
+
+**200**
+
+```json
+{
+  "items": [ /* DatasetProfileResponse objects */ ],
+  "pagination": { "page": 1, "page_size": 50, "total_items": 2, "total_pages": 1 }
+}
+```
+
 ## Error contract
 
 All errors use:
@@ -129,17 +202,18 @@ All errors use:
 |---|---|
 | 400 | `empty_upload`, `invalid_dataset_file` |
 | 404 | `dataset_not_found` |
+| 409 | `dataset_not_profileable`, `invalid_profile_state` |
 | 413 | `upload_too_large` |
 | 415 | `unsupported_file_format` |
 | 422 | `validation_error` |
-| 500 | `internal_error` |
+| 500 | `internal_error`, `profile_storage_error` |
 | 503 | `database_unavailable` |
 
 Specific codes are not final; the envelope and `X-Request-ID` propagation are.
 
-## API changes since Task 1
+## API changes since Task 2
 
-- Added `POST /datasets` (multipart) and the `DatasetService.ingest` flow.
-- Added `GET /datasets`, `GET /datasets/{dataset_id}`, `GET /datasets/{dataset_id}/versions`.
-- Added standardized `400`, `413`, `415`, and `404` error envelopes for dataset endpoints.
-- `X-Request-ID` is now included in the response headers of every endpoint.
+- Added `POST /datasets/{dataset_id}/profile` (multipart-free, idempotent on rows, persistent per run).
+- Added `GET /datasets/{dataset_id}/profile`, `GET /datasets/{dataset_id}/versions/{version_id}/profile`, and `GET /datasets/{dataset_id}/profiles`.
+- Added `dataset_not_profileable` (409), `invalid_profile_state` (422), and `profile_storage_error` (500) codes.
+- `X-Request-ID` continues to be included in the response headers of every endpoint.

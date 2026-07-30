@@ -2,7 +2,7 @@
 
 ## Status
 
-This document distinguishes **implemented in Task 1 and Task 2** from **planned** behavior.
+This document distinguishes **implemented in Task 1, Task 2, and Task 3** from **planned** behavior.
 
 ## System principles
 
@@ -12,7 +12,7 @@ This document distinguishes **implemented in Task 1 and Task 2** from **planned*
 4. Every transformation must pass deterministic validation and require explicit approval before creating a new immutable dataset version.
 5. API models are separate from persistence models.
 
-## Implemented component flow (Task 1 + Task 2)
+## Implemented component flow (Task 1 + Task 2 + Task 3)
 
 ```text
 HTTP client
@@ -27,6 +27,13 @@ HTTP client
           -> SQLAlchemy Session / DatasetRepository
               -> datasets + dataset_versions + dataset_columns
           -> FileStorage.promote (atomic os.replace into a generated key)
+  -> /datasets/{id}/profile routes
+      -> ProfilingService.profile_latest_version / get_latest / get_for_version / list_for_dataset
+          -> FileStorage.path_for (read-only)
+          -> DatasetProfiler (Polars read_csv / read_parquet, bounded head sample)
+              -> null / distinct / numeric / temporal / string-length / top-values / sampling flag
+          -> SQLAlchemy Session / ProfileRepository
+              -> dataset_profiles + column_profiles (JSONB metrics)
   -> Error envelope: { code, message, details, request_id }
   -> Structured request log without request bodies or dataset contents
 ```
@@ -34,15 +41,16 @@ HTTP client
 ## Planned flow (later tasks)
 
 ```text
-Polars / DuckDB / PyArrow profiling
-  -> independent quality detectors
+Polars / DuckDB / PyArrow profiling (Task 3 done; DuckDB later)
+  -> independent quality detectors (Task 4)
   -> standardized finding aggregation
-  -> objective scoring
-  -> provider-independent AI interpretation
-  -> structured recommendation validation
+  -> objective scoring (Task 5)
+  -> provider-independent AI interpretation (Task 7)
+  -> structured recommendation validation (Tasks 8-9)
   -> explicit approval + deterministic transformation
   -> post-change validation + new dataset version
   -> quality report
+  -> historical comparison and drift detection (Task 6)
 ```
 
 ## Package responsibilities
@@ -52,12 +60,13 @@ Polars / DuckDB / PyArrow profiling
 - `app/db`: SQLAlchemy declarative base, engine/session factory, models, repositories.
 - `app/schemas`: Pydantic v2 contracts for every endpoint; SQLAlchemy entities are never returned directly.
 - `app/ingestion`: file content validation, format-aware metadata readers, ingestion domain types and exceptions.
-- `app/storage`: pluggable `FileStorage` interface with a `LocalFileStorage` implementation (staging, key-validated promote, delete).
+- `app/storage`: pluggable `FileStorage` interface with a `LocalFileStorage` implementation (staging, key-validated promote, delete, read-only `path_for`).
 - `app/services`: orchestration (`DatasetService`) that wires storage, validator, readers, repository, and the session boundary.
+- `app/profiling`: deterministic Polars-based column metrics and the `ProfilingService` that persists immutable `DatasetProfile` + `ColumnProfile` rows. No DuckDB in Task 3.
 - `migrations/`: Alembic environment and revisions against `app.db.base.Base.metadata`.
 - `tests/`: unit, API, and opt-in PostgreSQL integration tests.
 
-Later tasks add `profiling`, `quality`, `analysis`, `ai`, `recommendations`, `validation`, and additional models/repositories only when their behavior exists.
+Later tasks add `quality`, `analysis`, `ai`, `recommendations`, `validation`, and additional models/repositories only when their behavior exists.
 
 ## Technology decisions
 
@@ -71,7 +80,7 @@ Configuration rejects SQLite and legacy psycopg2 URLs. Unit tests use test doubl
 
 ### Polars + PyArrow now; DuckDB later
 
-CSV metadata is extracted with Polars `scan_csv` (lazy, streaming) so we never materialize full datasets. Parquet metadata is read from the Arrow footer via PyArrow. DuckDB enters only when analytical or multi-dataset joins need it.
+CSV metadata is extracted with Polars `scan_csv` (lazy, streaming) so we never materialize full datasets. Parquet metadata is read from the Arrow footer via PyArrow. DuckDB enters only when analytical or multi-dataset joins need it. Task 3 profiling uses the same engines and only ever materializes a bounded `head(sample_size)` frame.
 
 ### No Pandas as core engine
 
@@ -89,6 +98,7 @@ A `FileStorage` protocol lets the service interface stay constant while later ta
 - Client-supplied `X-Request-ID` is length/character validated before logging and reflected on the response header.
 - Unexpected exceptions are logged server-side and sanitized to a stable error envelope on the wire.
 - The `ingest` flow commits the database only after a successful on-disk promote; failures delete the staged file (or the promoted file) to keep storage and database in sync.
+- Profiling is read-only: it never mutates the original file, so compensation only needs to roll back the inserted `dataset_profiles` / `column_profiles` rows.
 - Authentication is not implemented. Production data endpoints will require an explicit auth/tenant design before exposure.
 
 ## Deployment

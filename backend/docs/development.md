@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-Task 1 (foundation) and Task 2 (dataset ingestion) are complete. Task 2 delivers safe streaming CSV/Parquet ingestion into durable PostgreSQL tables with a typed REST surface, structured error envelope, and full local toolchain. There is no frontend, profiling, detection, AI, recommendation, or validation yet.
+Tasks 1 (foundation), 2 (dataset ingestion), and 3 (dataset profiling) are complete. Task 3 adds deterministic Polars-based column metrics over the original upload, persisted as immutable `DatasetProfile` / `ColumnProfile` rows. Detection, scoring, history, AI, recommendations, validation, and frontend work are still pending.
 
 ## Incremental delivery rule
 
@@ -10,15 +10,14 @@ For each approved task: state goal and architecture, identify files/dependencies
 
 ## Next approved sequence
 
-1. **Task 3 profiling:** dataset and column profiles through Polars lazy scans and PyArrow Parquet metadata. Structured profile schema, profiling service, profiling routes, profile endpoints, profile storage.
-2. **Task 4 detection:** standardized finding model, missingness, duplicates, invalid values, robust outliers, categorical inconsistencies, then schema, distribution drift, referential integrity, and relationship discovery.
-3. **Task 5 scoring:** explainable severity, two confidence concepts, and a decomposable quality score with documented formula.
-4. **Task 6 history:** version/profile/schema/distribution comparison, drift detection, lineage.
-5. **Task 7 AI:** provider abstraction and structured reasoning over findings, not datasets.
-6. **Task 8 recommendations:** constrained operations, never executable code.
-7. **Task 9 validation:** deterministic preview and side-effect checks before execution.
-8. **Task 10 API completion:** durable analysis job resource, frontend-ready contracts.
-9. **Task 11 hardening:** measured performance, security, limits, worker infrastructure if justified.
+1. **Task 4 detection:** standardized finding model, missingness, duplicates, invalid values, robust outliers, categorical inconsistencies, then schema, distribution drift, referential integrity, and relationship discovery.
+2. **Task 5 scoring:** explainable severity, two confidence concepts, and a decomposable quality score with documented formula.
+3. **Task 6 history:** version/profile/schema/distribution comparison, drift detection, lineage.
+4. **Task 7 AI:** provider abstraction and structured reasoning over findings, not datasets.
+5. **Task 8 recommendations:** constrained operations, never executable code.
+6. **Task 9 validation:** deterministic preview and side-effect checks before execution.
+7. **Task 10 API completion:** durable analysis job resource, frontend-ready contracts.
+8. **Task 11 hardening:** measured performance, security, limits, worker infrastructure if justified.
 
 ## Engineering standards
 
@@ -45,10 +44,10 @@ For each approved task: state goal and architecture, identify files/dependencies
 
 ## Migration workflow
 
-After Task 2 model imports are wired to `Base.metadata`:
+After Task 3 model imports are wired to `Base.metadata`:
 
 ```bash
-alembic revision --autogenerate -m "create dataset ingestion tables"
+alembic revision --autogenerate -m "create dataset profile tables"
 alembic upgrade head
 alembic downgrade -1
 alembic upgrade head
