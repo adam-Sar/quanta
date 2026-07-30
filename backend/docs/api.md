@@ -1,6 +1,6 @@
 # Backend API
 
-**Current version:** 0.3.0 (Task 3 profiling). Interactive OpenAPI is available at `/docs`; machine-readable OpenAPI is `/openapi.json`.
+**Current version:** 0.4.0 (Task 4 detection). Interactive OpenAPI is available at `/docs`; machine-readable OpenAPI is `/openapi.json`.
 
 ## Conventions
 
@@ -22,9 +22,9 @@ Process liveness. Does not access PostgreSQL.
 {
   "status": "ok",
   "service": "Quanta Data Reliability API",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "environment": "production",
-  "timestamp": "2026-07-30T08:45:10.381Z"
+  "timestamp": "2026-07-30T20:30:00.381Z"
 }
 ```
 
@@ -35,7 +35,7 @@ Verifies PostgreSQL connectivity with a `SELECT 1`.
 **200**
 
 ```json
-{ "status": "ready", "checks": { "database": "up" }, "timestamp": "2026-07-30T08:45:10.412Z" }
+{ "status": "ready", "checks": { "database": "up" }, "timestamp": "2026-07-30T20:30:00.412Z" }
 ```
 
 **503** uses the standard error envelope; the request never exposes hostnames, credentials, or driver messages.
@@ -117,7 +117,7 @@ List every immutable version of a dataset ordered by `version_number` desc. **40
 }
 ```
 
-## Profiles
+## Profiles (Task 3)
 
 ### `POST /datasets/{dataset_id}/profile`
 
@@ -190,6 +190,62 @@ List every profile run for a dataset, ordered by creation time desc. **404** if 
 }
 ```
 
+## Detections (Task 4)
+
+### `POST /datasets/{dataset_id}/detections`
+
+Run all Task 4 detectors (missingness, duplicates, invalid values, outliers, cardinality) against the most recently created profile and persist a fresh batch of immutable `Finding` rows.
+
+**201**
+
+```json
+{
+  "dataset_id": "5a8581da-0279-4a58-9f09-22f06dceaa10",
+  "profile_id": "8d4f2c40-6b29-4a90-9f8f-1dbf8cf01a2c",
+  "finding_count": 3,
+  "findings": [
+    {
+      "finding_id": "f47a...c1",
+      "dataset_id": "5a8581da-...",
+      "dataset_version_id": "690b72a0-...",
+      "profile_id": "8d4f2c40-...",
+      "kind": "missingness",
+      "severity": "high",
+      "column_name": "email",
+      "metric": "null_rate",
+      "value": 0.62,
+      "threshold": 0.5,
+      "description": "Column 'email' has 19,433 null values (62.0%) which is above the threshold (50.0%).",
+      "details": {
+        "null_count": 19433,
+        "non_null_count": 11911,
+        "sample_size": 31344
+      }
+    }
+  ]
+}
+```
+
+**404** if the dataset does not exist; **409** if the dataset has no profile yet.
+
+### `GET /datasets/{dataset_id}/detections`
+
+List every finding row for a dataset, ordered by creation time desc. **404** if the dataset is unknown.
+
+**Query parameters**
+
+- `page` ≥ 1 (default 1).
+- `page_size` 1–200 (default 50).
+
+**200**
+
+```json
+{
+  "items": [ /* FindingResponse objects */ ],
+  "pagination": { "page": 1, "page_size": 50, "total_items": 3, "total_pages": 1 }
+}
+```
+
 ## Error contract
 
 All errors use:
@@ -202,7 +258,7 @@ All errors use:
 |---|---|
 | 400 | `empty_upload`, `invalid_dataset_file` |
 | 404 | `dataset_not_found` |
-| 409 | `dataset_not_profileable`, `invalid_profile_state` |
+| 409 | `dataset_not_profileable`, `detection_not_profileable`, `invalid_profile_state`, `invalid_detection_state` |
 | 413 | `upload_too_large` |
 | 415 | `unsupported_file_format` |
 | 422 | `validation_error` |
@@ -211,9 +267,8 @@ All errors use:
 
 Specific codes are not final; the envelope and `X-Request-ID` propagation are.
 
-## API changes since Task 2
+## API changes since Task 3
 
-- Added `POST /datasets/{dataset_id}/profile` (multipart-free, idempotent on rows, persistent per run).
-- Added `GET /datasets/{dataset_id}/profile`, `GET /datasets/{dataset_id}/versions/{version_id}/profile`, and `GET /datasets/{dataset_id}/profiles`.
-- Added `dataset_not_profileable` (409), `invalid_profile_state` (422), and `profile_storage_error` (500) codes.
+- Added `POST /datasets/{dataset_id}/detections` (201) and `GET /datasets/{dataset_id}/detections` (200).
+- Added `detection_not_profileable` (409) and `invalid_detection_state` (422) codes.
 - `X-Request-ID` continues to be included in the response headers of every endpoint.

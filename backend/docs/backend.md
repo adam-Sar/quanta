@@ -15,7 +15,7 @@ copy .env.example .env
 docker compose up --build
 ```
 
-On POSIX shells use `cp` instead of `copy`. Compose starts PostgreSQL, applies the Alembic foundation, dataset ingestion, and profile migrations, and serves FastAPI on port 8000.
+On POSIX shells use `cp` instead of `copy`. Compose starts PostgreSQL, applies the Alembic foundation, dataset ingestion, profile, and findings migrations, and serves FastAPI on port 8000.
 
 ```bash
 curl http://localhost:8000/health
@@ -78,23 +78,24 @@ Copy `.env.example` to `.env`; never commit `.env`. Important current settings:
 | `PROFILE_DEFAULT_SAMPLE_ROWS` | Upper bound on rows profiled per run |
 | `PROFILE_TOP_VALUES_LIMIT` | Maximum top-values rows persisted per column |
 | `PROFILE_MAX_BYTES_IN_MEMORY` | Operator-facing safety budget for in-memory profiling |
-| `PROFILE_NULL_THRESHOLD` | Reserved for Task 4+ detection hints |
+| `PROFILE_NULL_THRESHOLD` | Default threshold feeding the Task 4 missingness detector |
 
-Storage, LLM, and Redis variables are listed as future configuration contracts but remain unused in Task 3.
+Storage, LLM, and Redis variables are listed as future configuration contracts but remain unused in Task 4.
 
 ## Structure
 
 ```text
 backend/
   app/
-    api/routes/{health,datasets,profiles}.py
+    api/routes/{health,datasets,profiles,findings}.py
     core/{config,exceptions,logging,middleware}.py
     db/{base,session}.py
-    db/models/{dataset,profile}.py
-    db/repositories/{datasets,profiles}.py
+    db/models/{dataset,profile,finding}.py
+    db/repositories/{datasets,profiles,findings}.py
+    detection/{types,exceptions,detectors,service}.py
     ingestion/{types,exceptions,validators,readers}.py
     profiling/{types,exceptions,metrics,service}.py
-    schemas/{common,datasets,health,profiles}.py
+    schemas/{common,datasets,health,profiles,findings}.py
     services/{dataset_service,exceptions}.py
     storage/{files}.py
     api/{dependencies,router}.py
@@ -121,6 +122,13 @@ backend/
 4. The service writes a new `DatasetProfile` row plus one `ColumnProfile` JSONB row per column in a single transaction.
 5. Database failures roll back the row insert; the original file is never mutated, so no storage compensation is needed.
 6. `GET /datasets/{dataset_id}/profile`, `GET /datasets/{dataset_id}/versions/{version_id}/profile`, and `GET /datasets/{dataset_id}/profiles` return the persisted artifacts without recomputing.
+
+## Detection lifecycle (Task 4)
+
+1. `POST /datasets/{dataset_id}/detections` resolves the latest profile and calls `DetectionService.detect_latest`. **404** if the dataset does not exist; **409** if it exists but has no profile yet.
+2. The service reads the persisted `JSONB` metrics through `to_api_profile`, runs `run_all_detectors` (missingness, duplicates, invalid values, outliers, cardinality), and writes a fresh batch of immutable `Finding` rows in a single transaction.
+3. Database failures roll back the row insert; the original file and the profile rows are never mutated, so no storage compensation is needed.
+4. `GET /datasets/{dataset_id}/detections` returns a paginated list of the new finding rows ordered by creation time desc.
 
 ## Logging and errors
 

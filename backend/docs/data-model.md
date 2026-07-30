@@ -1,8 +1,8 @@
 # Data model
 
-## Task 3 state
+## Task 4 state
 
-`0001_foundation` establishes a concrete Alembic head. `0002_dataset_ingestion` creates the durable tables for logical datasets and their immutable versions. `0003_create_dataset_profiles` adds immutable profile runs and JSONB per-column metrics. No AI, detection, scoring, or recommendation tables exist yet.
+`0001_foundation` establishes a concrete Alembic head. `0002_dataset_ingestion` creates the durable tables for logical datasets and their immutable versions. `0003_create_dataset_profiles` adds immutable profile artifacts. `0004_create_dataset_findings` adds immutable quality findings bound to the latest profile. No AI, scoring, or recommendation tables exist yet.
 
 ### `datasets`
 
@@ -50,7 +50,7 @@ Indexes: `uq_dataset_versions_storage_key`, `ix_dataset_versions_content_sha256`
 
 Indexes: `uq_dataset_columns_name`, `uq_dataset_columns_ordinal`, `ix_dataset_columns_version`.
 
-### `dataset_profiles`
+### `dataset_profiles` (Task 3)
 
 | Column | Type | Notes |
 |---|---|---|
@@ -66,7 +66,7 @@ Indexes: `uq_dataset_columns_name`, `uq_dataset_columns_ordinal`, `ix_dataset_co
 
 Indexes: `ix_dataset_profiles_dataset`, `ix_dataset_profiles_version_created`.
 
-### `column_profiles`
+### `column_profiles` (Task 3)
 
 | Column | Type | Notes |
 |---|---|---|
@@ -78,7 +78,27 @@ Indexes: `ix_dataset_profiles_dataset`, `ix_dataset_profiles_version_created`.
 
 Indexes: `uq_column_profiles_name`, `uq_column_profiles_ordinal`, `ix_column_profiles_dataset_profile`.
 
-## Modeling rules for Task 4+
+### `findings` (Task 4)
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | Default `uuid4()`. |
+| `dataset_id` | UUID NOT NULL FK → `datasets.id` ON DELETE CASCADE | Finding scope. |
+| `dataset_version_id` | UUID NOT NULL FK → `dataset_versions.id` ON DELETE CASCADE | Profiled version the finding refers to. |
+| `profile_id` | UUID NOT NULL FK → `dataset_profiles.id` ON DELETE CASCADE | Source profile. |
+| `kind` | enum `finding_kind` | `missingness`, `duplicates`, `invalid_values`, `outlier`, `cardinality`. |
+| `severity` | enum `finding_severity` | `info`, `low`, `medium`, `high`, `critical`. |
+| `column_name` | VARCHAR(255) NULL | NULL for dataset-level findings (e.g. duplicates). |
+| `metric` | VARCHAR(64) NOT NULL | Detector metric identifier (e.g. `null_rate`, `duplicate_rate`). |
+| `value` | FLOAT NOT NULL | Observed metric value. |
+| `threshold` | FLOAT NOT NULL | Detector threshold. |
+| `description` | VARCHAR(1024) NOT NULL | Human-readable summary. |
+| `details` | JSONB NOT NULL | Detector-specific evidence. |
+| `created_at` | TIMESTAMPTZ NOT NULL DEFAULT now() | Insertion timestamp. |
+
+Indexes: `ix_findings_dataset_version`, `ix_findings_profile`, `ix_findings_kind_severity`.
+
+## Modeling rules for Task 5+
 
 1. UUID primary keys and timezone-aware `created_at`/`updated_at`.
 2. Foreign keys with deliberate delete behavior; no accidental cascades.
@@ -89,4 +109,4 @@ Indexes: `uq_column_profiles_name`, `uq_column_profiles_ordinal`, `ix_column_pro
 7. Uniqueness constraints for identities and idempotency.
 8. Every migration must support a reasoned upgrade, downgrade, and review.
 
-Exact columns, enums, and retention policy will be decided with Task 4 detection and Task 6 historical comparison rather than guessed now.
+Exact columns, enums, and retention policy will be decided with Task 5 scoring and Task 6 history rather than guessed now.
