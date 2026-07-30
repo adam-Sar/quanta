@@ -7,7 +7,10 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
+from app.ai.providers.noop import NoopProvider
+from app.ai.service import ReasoningService
 from app.core.config import Settings, get_settings
+from app.db.repositories.ai_interpretations import AIInterpretationRepository
 from app.db.repositories.datasets import DatasetRepository
 from app.db.repositories.findings import FindingRepository
 from app.db.repositories.history_comparisons import HistoryComparisonRepository
@@ -103,5 +106,19 @@ def get_history_service(
     return HistoryService(
         session=session,
         repository=HistoryComparisonRepository(session),
+        settings=settings,
+    )
+
+
+def get_reasoning_service(
+    session: Annotated[Session, Depends(get_db)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> ReasoningService:
+    """Compose the Task 7 AI reasoning service with persistence."""
+
+    return ReasoningService(
+        session=session,
+        repository=AIInterpretationRepository(session),
+        provider=NoopProvider(),
         settings=settings,
     )

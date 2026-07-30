@@ -12,7 +12,7 @@ This document distinguishes **implemented in Task 1, Task 2, Task 3, Task 4, Tas
 4. Every transformation must pass deterministic validation and require explicit approval before creating a new immutable dataset version.
 5. API models are separate from persistence models.
 
-## Implemented component flow (Task 1 + Task 2 + Task 3 + Task 4 + Task 5 + Task 6)
+## Implemented component flow (Task 1 + Task 2 + Task 3 + Task 4 + Task 5 + Task 6 + Task 7)
 
 ```text
 HTTP client
@@ -42,6 +42,7 @@ HTTP client
               -> findings (kind, severity, column_name, metric, value, threshold, JSONB details)
   -> /datasets/{id}/scores routes (Task 5)
   -> /datasets/{id}/comparisons and /datasets/{id}/lineage routes (Task 6)
+  -> /datasets/{id}/interpretations routes (Task 7)
       -> ScoringService.score_latest / get_latest / get_for_version / list_for_dataset
           -> FindingRepository.list_for_profile (read immutable Task 4 rows)
           -> compute_quality_score (detection_confidence, data_error_confidence,

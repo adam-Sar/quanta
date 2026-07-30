@@ -90,6 +90,9 @@ Copy `.env.example` to `.env`; never commit `.env`. Important current settings:
 | `HISTORY_SCORE_DELTA_LOW` | Quality-score low band |
 | `HISTORY_SCORE_DELTA_MEDIUM` | Quality-score medium band |
 | `HISTORY_SCORE_DELTA_HIGH` | Quality-score high band |
+| `AI_FORMULA_VERSION` | Identifier persisted on every Task 7 AI interpretation row |
+| `AI_MAX_FINDINGS_PER_REQUEST` | Upper bound on findings included in the AI prompt |
+| `AI_PROMPT_CHAR_BUDGET` | Soft upper bound on prompt size in characters |
 
 Storage, LLM, and Redis variables are listed as future configuration contracts but remain unused in Task 6.
 
@@ -98,17 +101,18 @@ Storage, LLM, and Redis variables are listed as future configuration contracts b
 ```text
 backend/
   app/
-    api/routes/{health,datasets,profiles,findings,scores,history}.py
+    api/routes/{health,datasets,profiles,findings,scores,history,ai}.py
     core/{config,exceptions,logging,middleware}.py
     db/{base,session}.py
-    db/models/{dataset,profile,finding,quality_score,history_comparison}.py
-    db/repositories/{datasets,profiles,findings,quality_scores,history_comparisons}.py
+    db/models/{dataset,profile,finding,quality_score,history_comparison,ai_interpretation}.py
+    db/repositories/{datasets,profiles,findings,quality_scores,history_comparisons,ai_interpretations}.py
     detection/{types,exceptions,detectors,service}.py
     ingestion/{types,exceptions,validators,readers}.py
     profiling/{types,exceptions,metrics,service}.py
     scoring/{types,exceptions,formula,service}.py
     history/{types,exceptions,comparison,drift,lineage,service}.py
-    schemas/{common,datasets,health,profiles,findings,scores,history}.py
+    ai/{types,exceptions,comparison,drift,lineage,service}.py
+    schemas/{common,datasets,health,profiles,findings,scores,history,ai}.py
     services/{dataset_service,exceptions}.py
     storage/{files}.py
     api/{dependencies,router}.py
@@ -157,6 +161,13 @@ backend/
 3. `GET /datasets/{dataset_id}/comparisons/{comparison_id}` and `GET /datasets/{dataset_id}/comparisons` return the persisted comparison rows without recomputing.
 4. `GET /datasets/{dataset_id}/lineage` walks the version chain and returns the ordered lineage edges.
 5. The deterministic formula and all thresholds are documented in `backend/docs/history.md`.
+
+## AI interpretation lifecycle (Task 7)
+
+1. `POST /datasets/{dataset_id}/interpretations` (Task 7) resolves the latest profile, reads the immutable Task 4 findings, builds a bounded prompt, calls the configured `LLMProvider` (default `noop`), validates the structured `InterpretationResponseSchema` response, and persists a fresh immutable `ai_interpretations` row in a single transaction.
+2. Database failures roll back the insert only; the original files, profiles, scores, and finding rows are never mutated.
+3. `GET /datasets/{dataset_id}/interpretations/{interpretation_id}` and `GET /datasets/{dataset_id}/interpretations` return the persisted interpretation rows without recomputing.
+4. Real provider SDKs land in a later task; the default `noop` provider keeps tests and offline runs fast and deterministic.
 
 ## Logging and errors
 

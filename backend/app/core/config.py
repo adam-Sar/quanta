@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Quanta Data Reliability API"
-    app_version: str = "0.6.0"
+    app_version: str = "0.7.0"
     environment: Literal["development", "test", "staging", "production"] = "development"
     debug: bool = False
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
@@ -73,6 +73,15 @@ class Settings(BaseSettings):
     history_score_delta_low: float = Field(default=5.0, ge=0.0, le=100.0)
     history_score_delta_medium: float = Field(default=10.0, ge=0.0, le=100.0)
     history_score_delta_high: float = Field(default=20.0, ge=0.0, le=100.0)
+
+    # Task 7 AI reasoning settings. The default is the offline noop
+    # provider so tests and offline runs stay fast and deterministic.
+    # ai_formula_version is persisted on every interpretation row for
+    # audit. ai_max_findings_per_request bounds the prompt; real provider
+    # SDKs land in a later task.
+    ai_formula_version: str = Field(default="task7-1.0", min_length=1, max_length=64)
+    ai_max_findings_per_request: int = Field(default=20, ge=1, le=200)
+    ai_prompt_char_budget: int = Field(default=8_000, ge=256, le=131_072)
 
     @property
     def max_upload_size_bytes(self) -> int:

@@ -1,6 +1,6 @@
 # Backend API
 
-**Current version:** 0.6.0 (Task 6 history). Interactive OpenAPI is available at `/docs`; machine-readable OpenAPI is `/openapi.json`.
+**Current version:** 0.7.0 (Task 7 AI). Interactive OpenAPI is available at `/docs`; machine-readable OpenAPI is `/openapi.json`.
 
 ## Conventions
 
@@ -374,6 +374,52 @@ List every comparison run for a dataset, ordered by creation time desc. **404** 
 ### `GET /datasets/{dataset_id}/lineage`
 
 Walk the version chain and return the ordered lineage edges. **404** if the dataset is unknown.
+
+
+## AI interpretation (Task 7)
+
+### `POST /datasets/{dataset_id}/interpretations`
+
+Run the AI reasoning layer against the latest detection batch and persist a fresh immutable `ai_interpretations` row. **404** if the dataset does not exist; **409** if no detection batch exists; **502** if the configured provider fails.
+
+**201**
+
+```json
+{
+  "interpretation_id": "8d4f2c40-6b29-4a90-9f8f-1dbf8cf01a2c",
+  "dataset_id": "5a8581da-0279-4a58-9f09-22f06dceaa10",
+  "profile_id": "8d4f2c40-6b29-4a90-9f8f-1dbf8cf01a2c",
+  "provider_name": "noop",
+  "model_name": "n/a",
+  "formula_version": "task7-1.0",
+  "summary": "NoopProvider placeholder interpretation ...",
+  "overall_confidence": 0.0,
+  "input_finding_ids": ["..."],
+  "hypotheses": [
+    {
+      "category": "data_quality",
+      "summary": "...",
+      "affected_columns": ["id"],
+      "supporting_finding_ids": ["..."],
+      "confidence": 0.1
+    }
+  ],
+  "created_at": "2026-07-30T10:30:00.000+00:00"
+}
+```
+
+### `GET /datasets/{dataset_id}/interpretations/{interpretation_id}`
+
+Return a single persisted interpretation row. **404** if the interpretation does not exist.
+
+### `GET /datasets/{dataset_id}/interpretations`
+
+List every interpretation run for a dataset, ordered by creation time desc. **404** if the dataset is unknown.
+
+**Query parameters**
+
+- `page` >= 1 (default 1).
+- `page_size` 1-200 (default 50).
 
 ## Error contract
 
