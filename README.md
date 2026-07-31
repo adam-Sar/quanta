@@ -4,7 +4,7 @@ Quanta is a production-oriented data quality and reliability system. Determinist
 
 ## Current implementation
 
-**Tasks 1 (foundation), 2 (dataset ingestion), 3 (dataset profiling), 4 (deterministic detection), 5 (quality scoring), 6 (history), 7 (AI reasoning), 8 (recommendations), 9 (validation), and 10 (durable analysis jobs) are complete.**
+**Tasks 1 (foundation) through 11 (hardening) are complete.** Version 1.1.0.
 
 What is implemented today:
 

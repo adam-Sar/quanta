@@ -1,4 +1,12 @@
-"""Application exceptions and consistent public API error handling."""
+"""Application exceptions and consistent public API error handling (Task 11).
+
+Adds the Task 11 hardening errors: 429 rate limit, 413 request too
+large, 504 request timeout. The base ``ApplicationError`` envelope and
+the standard handler registration are unchanged so existing Tasks
+1-10 still produce the documented error contract.
+"""
+
+from __future__ import annotations
 
 import logging
 from http import HTTPStatus
@@ -45,6 +53,43 @@ class DatabaseUnavailableError(ApplicationError):
         )
 
 
+class RateLimitExceededError(ApplicationError):
+    """Raised when a client exceeds the configured request budget."""
+
+    def __init__(self, *, retry_after_seconds: int, scope: str) -> None:
+        super().__init__(
+            code="rate_limit_exceeded",
+            message="Too many requests. Retry after the indicated delay.",
+            status_code=HTTPStatus.TOO_MANY_REQUESTS,
+            details={"retry_after_seconds": retry_after_seconds, "scope": scope},
+        )
+        self.retry_after_seconds = retry_after_seconds
+
+
+class RequestTooLargeError(ApplicationError):
+    """Raised when an upload or request body exceeds the operator cap."""
+
+    def __init__(self, *, observed_bytes: int, limit_bytes: int) -> None:
+        super().__init__(
+            code="request_too_large",
+            message="The request body exceeds the configured size limit.",
+            status_code=HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+            details={"observed_bytes": observed_bytes, "limit_bytes": limit_bytes},
+        )
+
+
+class RequestTimeoutError(ApplicationError):
+    """Raised when a request exceeds the configured request-budget deadline."""
+
+    def __init__(self, *, budget_ms: int, observed_ms: int) -> None:
+        super().__init__(
+            code="request_timeout",
+            message="The request exceeded the configured budget.",
+            status_code=HTTPStatus.GATEWAY_TIMEOUT,
+            details={"budget_ms": budget_ms, "observed_ms": observed_ms},
+        )
+
+
 def _request_id_for(request: Request) -> str:
     """Read correlation state even when outer server middleware handles an exception."""
 
@@ -68,10 +113,13 @@ def _error_response(
             request_id=request_id,
         )
     )
+    headers = {"X-Request-ID": request_id}
+    if status_code == HTTPStatus.TOO_MANY_REQUESTS:
+        headers["Retry-After"] = "1"
     return JSONResponse(
         status_code=status_code,
         content=body.model_dump(mode="json"),
-        headers={"X-Request-ID": request_id},
+        headers=headers,
     )
 
 

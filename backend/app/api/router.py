@@ -8,6 +8,7 @@ from app.api.routes.findings import router as findings_router
 from app.api.routes.health import router as health_router
 from app.api.routes.history import router as history_router
 from app.api.routes.jobs import router as jobs_router
+from app.api.routes.ops import router as ops_router
 from app.api.routes.profiles import router as profiles_router
 from app.api.routes.recommendations import router as recommendations_router
 from app.api.routes.scores import router as scores_router
@@ -24,3 +25,4 @@ api_router.include_router(ai_router)
 api_router.include_router(recommendations_router)
 api_router.include_router(validations_router)
 api_router.include_router(jobs_router)
+api_router.include_router(ops_router)

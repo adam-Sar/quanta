@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Quanta Data Reliability API"
-    app_version: str = "1.0.0"
+    app_version: str = "1.1.0"
     environment: Literal["development", "test", "staging", "production"] = "development"
     debug: bool = False
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
@@ -107,6 +107,25 @@ class Settings(BaseSettings):
     job_formula_version: str = Field(
         default="task10-1.0", min_length=1, max_length=64
     )
+
+    # Task 11 hardening settings. The rate limiter and request-budget
+    # guard are operator-facing knobs. ``rate_limit_capacity`` requests
+    # per ``rate_limit_window_seconds`` are allowed per
+    # ``(client_key, scope)``; ``request_budget_ms`` is the soft wall
+    # at which the request-time middleware records a warning (and may
+    # be promoted to a 504 in a future task). ``max_request_bytes``
+    # bounds the request body for routes that opt in (dataset and
+    # jobs ingestion); the existing ``max_upload_size_mb`` already
+    # bounds the streaming upload path.
+    rate_limit_capacity: int = Field(default=120, ge=1, le=10_000)
+    rate_limit_window_seconds: float = Field(default=60.0, ge=0.1, le=3_600.0)
+    request_budget_ms: int = Field(default=15_000, ge=100, le=600_000)
+    max_request_bytes: int = Field(
+        default=1_048_576,
+        ge=1_024,
+        le=64 * 1_048_576,
+    )
+    metrics_buffer_capacity: int = Field(default=256, ge=16, le=4_096)
 
     @property
     def max_upload_size_bytes(self) -> int:
