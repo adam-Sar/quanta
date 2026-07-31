@@ -5,13 +5,13 @@
 - **Current task:** TASK 3 — Dataset Overview
 - **Overall progress:** 2 / 11
 - **Last updated:** 2026-07-31
-- **Status:** TASK 2 complete; waiting for approval to start the next task
+- **Status:** In progress
 
 ## Tasks
 
 - [x] TASK 1 — Foundation
 - [x] TASK 2 — Dataset Explorer
-- [ ] TASK 3 — Dataset Overview
+- [ ] TASK 3 — Dataset Overview (in progress)
 - [ ] TASK 4 — Profiling
 - [ ] TASK 5 — Findings
 - [ ] TASK 6 — Historical Analysis
@@ -20,6 +20,40 @@
 - [ ] TASK 9 — Validation
 - [ ] TASK 10 — Jobs
 - [ ] TASK 11 — Polish
+
+## Task 3 Scope
+
+### Goal
+
+Build the first dataset health view. Consume the exact profile, findings, score, and lineage contracts the backend already exposes (`GET /datasets/{id}/profile`, `GET /datasets/{id}/detections`, `GET /datasets/{id}/score`, `GET /datasets/{id}/lineage`) and present a high-signal overview that explains WHY the score is what it is. The official score is the backend’s; the frontend must not recompute it.
+
+### Backend endpoints involved
+
+- `GET /datasets/{dataset_id}/profile` — latest `DatasetProfileResponse`; 409 if no profile yet.
+- `GET /datasets/{dataset_id}/detections` — paginated `FindingListResponse`; 404 if the dataset is unknown.
+- `GET /datasets/{dataset_id}/score` — latest `QualityScoreResponse`; 409 if not scored yet.
+- `GET /datasets/{dataset_id}/lineage` — ordered lineage edges.
+
+### Data flow
+
+- A `useQueries`-style parallel `useQuery` set fetches profile, findings, score, and lineage in parallel.
+- The Quality Score component shows the authoritative `score` and `grade`, the per-kind/per-severity/per-column breakdown, and a sample of contributing findings.
+- The Findings preview lists the highest-severity rows and links to the dedicated findings view.
+- The Profile Summary block explains sample size, sampling flag, and per-column null/distinct/dtype statistics.
+- The lineage section renders the ordered version chain as a compact timeline.
+
+### Design considerations
+
+- The score is presented as the backend’s authoritative value; the breakdown explains it.
+- A graceful “Not yet profiled / Not yet scored” empty state is shown when the backend returns 409, never a fake or recomputed value.
+- Progressive disclosure: the overview summarises; deeper inspection lives in the dedicated tabs.
+- Severity colours carry text labels so meaning is never colour-only.
+
+### Testing plan
+
+- `npm run typecheck --prefix frontend` and `npm run build --prefix frontend`.
+- Run the profile, findings, score, and lineage backend tests.
+- Verify the overview state in the browser with a running API.
 
 ## Task 2 Scope
 
@@ -52,7 +86,7 @@ Integrate the backend dataset inventory and ingestion contracts. Build a profess
 - Run the relevant backend dataset API tests and the full frontend browser flow with a running API/database where available.
 - Inspect empty, loading, error, upload, table, pagination, and dataset-navigation states.
 
-## Task 1 Scope
+## Task 1 Scope (already complete; retained for reference)
 
 ### Goal
 
@@ -155,6 +189,7 @@ The frontend API layer is designed around the documented backend base URL `http:
 - [x] Dataset API tests: `tests/api/test_datasets.py` passes 10/10; coverage remains gated by the full suite threshold (10/10 pass when isolated).
 - [x] Browser inspection at desktop resolution with Vite and the live FastAPI process. The datasets table, search, sort, pagination, upload modal, and resource page all render and behave correctly. Dataset queries return 500 from the local backend because PostgreSQL is not running; the explorer renders the sanitized error envelope and the request ID.
 - [x] Deep-link handling: the Vite proxy now bypasses the dataset endpoint for `text/html` requests so direct URL navigation returns the SPA shell.
+- [x] Commit: `75533d8` `feat(frontend): add dataset explorer`.
 
 - [x] Frontend TypeScript check: `npm run typecheck --prefix frontend`
 - [x] Frontend production build: `npm run build --prefix frontend`
@@ -192,4 +227,5 @@ Complete and verify **TASK 2 — Dataset Explorer**, then proceed to **TASK 3 �
 - 2026-07-31: Task 1 tracker created before frontend implementation.
 - 2026-07-31: Task 1 implemented, checked, browser-inspected, and documented. Next recommended work is Task 2 only after explicit approval.
 - 2026-07-31: User approved continuing with Task 2 and granted permission to proceed to subsequent tasks after each completed milestone.
-- 2026-07-31: Task 2 implemented, checked, browser-inspected, and documented. Next recommended work is Task 3 only after explicit approval.
+- 2026-07-31: Task 2 implemented, checked, browser-inspected, documented, and committed.
+- 2026-07-31: User granted permission to proceed to subsequent tasks automatically; Task 3 is in progress.
