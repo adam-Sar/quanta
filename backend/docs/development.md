@@ -4,13 +4,14 @@
 
 Tasks 1 (foundation), 2 (dataset ingestion), 3 (dataset profiling), 4
 (deterministic detection), 5 (quality scoring), 6 (history), 7
-(AI reasoning), and 8 (recommendations) are complete. Tasks 3-8
-add immutable profile, finding, score, history, AI interpretation,
-and recommendation artifacts derived from the original upload,
-persisted as `DatasetProfile` / `ColumnProfile` / `Finding` /
-`QualityScore` / `HistoryComparison` / `AIInterpretation` /
-`Recommendation` rows. Validation, frontend work, and durable
-analysis jobs are still pending.
+(AI reasoning), 8 (recommendations), 9 (validation), and 10
+(durable analysis jobs) are complete. Tasks 3-10 add immutable
+profile, finding, score, history, AI interpretation,
+recommendation, validation, and job artifacts derived from the
+original upload, persisted as `DatasetProfile` / `ColumnProfile` /
+`Finding` / `QualityScore` / `HistoryComparison` / `AIInterpretation` /
+`Recommendation` / `Validation` / `Job` rows. Frontend work and
+worker infrastructure (Task 11 hardening) are still pending.
 
 ## Incremental delivery rule
 
@@ -23,8 +24,8 @@ For each approved task: state goal and architecture, identify files/dependencies
 3. ~~**Task 6 history:** version/profile/schema/distribution comparison, drift detection, lineage.~~ **Done (commit `b1a0b94`).** Deterministic `HistoryService` reads the immutable Task 2-5 rows for two versions and persists a fresh `HistoryComparison` row (schema diff + numeric/categorical drift + score drift). Exposed via `POST/GET /datasets/{id}/comparisons` plus `GET .../lineage`. Full formula in `backend/docs/history.md`.
 4. ~~**Task 7 AI:** provider abstraction and structured reasoning over findings, not datasets.~~ **Done (commit `0184fef`).** Provider-independent `LLMProvider` Protocol; deterministic `NoopProvider` for offline runs; `ReasoningService` reads the Task 4 findings bound to the latest profile, builds a bounded prompt, calls the configured provider, validates the structured `InterpretationResponseSchema` response, and persists a fresh `ai_interpretations` row. Exposed via `POST/GET /datasets/{id}/interpretations`. Real provider SDKs land in a later task; full protocol in `backend/docs/ai-layer.md`.
 5. ~~**Task 8 recommendations:** constrained operations, never executable code.~~ **Done.** Deterministic rule engine consumes the Task 4 findings bound to the latest profile (optionally enriched with the latest Task 5 score id and the latest Task 7 AI interpretation id) and persists a fresh immutable batch of `recommendations` rows. Every recommendation is **preview-only** and carries a constrained operation (`impute_missing`, `drop_column`, `drop_duplicates`, `cap_outliers`, `cast_type`, `group_rare_categorical`, `review`) with severity, confidence, priority, and supporting finding ids. Exposed via `POST/GET /datasets/{id}/recommendations`. The apply step is intentionally **out of scope** and lands in Task 9. Full rule engine in `backend/docs/recommendations.md`.
-6. **Task 9 validation:** deterministic preview and side-effect checks before execution.
-7. **Task 10 API completion:** durable analysis job resource, frontend-ready contracts.
+6. ~~**Task 9 validation:** deterministic preview and side-effect checks before execution.~~ **Done.** Deterministic `ValidationService` consumes a Task 8 recommendation, reads the source file through `FileStorage.path_for`, runs the bounded `preview_recommendation` engine over a Polars/PyArrow frame, and persists a fresh immutable `validations` row with a structured `impact` payload. Exposed via `POST /datasets/{id}/recommendations/{recommendation_id}/validate`, `GET .../validations`, and `GET .../validations/{validation_id}`. The apply step (which would create a new immutable dataset version) remains out of scope and lands in a later task. Full preview engine in `backend/docs/validation.md`.
+7. ~~**Task 10 durable analysis jobs:** synchronous, queryable, auditable resource that wraps the Task 2-9 operations.~~ **Done.** Deterministic `JobService` creates a `Job` row in `pending` status, dispatches the wrapped Task 2-9 service method via `run_job` (synchronous in Task 10), and updates the row to `succeeded` / `failed` with a structured `result` or sanitized `error` envelope. The supported `kind` values are `profile`, `detect`, `score`, `history`, `recommendations`, and `validations`. Exposed via `POST /datasets/{id}/jobs`, `GET .../jobs`, and `GET /datasets/jobs/{job_id}`. Worker infrastructure lands in Task 11. Full dispatcher in `backend/docs/jobs.md`.
 8. **Task 11 hardening:** measured performance, security, limits, worker infrastructure if justified.
 
 ## Engineering standards

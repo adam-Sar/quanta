@@ -1,6 +1,6 @@
 # Future frontend integration contract
 
-> **Implementation status:** `GET /health`, `GET /health/ready`, dataset ingestion, profiling, detection, scoring, history, AI interpretation, and recommendation endpoints exist through Task 8. The Task 8 recommendation endpoints (`POST /datasets/{dataset_id}/recommendations`, `GET /datasets/{dataset_id}/recommendations/{recommendation_id}`, `GET /datasets/{dataset_id}/recommendations`) are implemented and **preview-only**; validation, analysis-job, durable apply, and frontend work remain planned. No frontend has been created.
+> **Implementation status:** `GET /health`, `GET /health/ready`, dataset ingestion, profiling, detection, scoring, history, AI interpretation, recommendation, validation, and durable analysis job endpoints exist through Task 10. The Task 8 recommendation endpoints and the Task 9 validation endpoints remain **preview-only**; the Task 10 jobs endpoints are **synchronous** in Task 10 and become asynchronous when the Task 11 worker is introduced. Durable apply and frontend work remain planned. No frontend has been created.
 
 ## Transport and discovery
 
@@ -97,10 +97,15 @@ Display `message`; use `code` for behavior; map field-level `details` to forms w
 | `POST /datasets/{dataset_id}/recommendations` | 8 | Implemented (preview-only) |
 | `GET /datasets/{dataset_id}/recommendations/{recommendation_id}` | 8 | Implemented (preview-only) |
 | `GET /datasets/{dataset_id}/recommendations` | 8 | Implemented (preview-only) |
-| `POST /recommendations/{id}/validate` | 9/10 | Planned |
+| `POST /datasets/{dataset_id}/recommendations/{recommendation_id}/validate` | 9 | Implemented (preview-only) |
+| `GET /datasets/{dataset_id}/recommendations/{recommendation_id}/validations` | 9 | Implemented |
+| `GET /datasets/{dataset_id}/recommendations/{recommendation_id}/validations/{validation_id}` | 9 | Implemented |
+| `POST /datasets/{dataset_id}/jobs` | 10 | Implemented (synchronous) |
+| `GET /datasets/{dataset_id}/jobs` | 10 | Implemented |
+| `GET /datasets/jobs/{job_id}` | 10 | Implemented |
 | `POST /recommendations/{id}/apply` | after validation/approval | Planned |
 | `POST /datasets/compare` | 6/10 | Planned |
-| `GET /analysis/{analysis_job_id}` | 10/11 | Planned |
+| `GET /analysis/{analysis_job_id}` | 10/11 | Planned (Task 11 hardening adds a real worker) |
 
 Names may change only through a documented contract revision before frontend implementation.
 
@@ -163,18 +168,30 @@ Recommendations are constrained operations (for example `map_values`) with ratio
 
 Validation can fail and must leave Apply disabled. A later apply call requires explicit confirmation, optimistic state/version controls, and creates a new dataset version; it never mutates the source version.
 
-## Planned analysis jobs
+## Analysis jobs (Task 10)
 
-Long-running analysis will return `202 Accepted`, not hold a browser request indefinitely:
+Long-running analysis returns the durable `Job` resource. In Task 10 execution is **synchronous**; the Task 11 hardening task may add a real worker without changing the persisted resource shape. The supported `kind` values are `profile`, `detect`, `score`, `history`, `recommendations`, and `validations`.
 
 ```json
 {
-  "analysis_job_id": "aa5ef46f-a66e-4ef0-a03f-9c06c677c48e",
+  "job_id": "aa5ef46f-a66e-4ef0-a03f-9c06c677c48e",
   "dataset_id": "5a8581da-0279-4a58-9f09-22f06dceaa10",
-  "dataset_version_id": "690b72a0-b1eb-4161-b1a1-780bdd0715df",
-  "status": "queued",
-  "created_at": "2026-07-30T09:03:00Z"
+  "kind": "profile",
+  "status": "succeeded",
+  "title": "Profile dataset version",
+  "parameters": {},
+  "result": {
+    "profile_id": "8d4f2c40-6b29-4a90-9f8f-1dbf8cf01a2c",
+    "dataset_id": "5a8581da-0279-4a58-9f09-22f06dceaa10",
+    "dataset_version_id": "690b72a0-b1eb-4161-b1a1-780bdd0715df",
+    "sample_size": 329881
+  },
+  "error": {},
+  "formula_version": "task10-1.0",
+  "created_at": "2026-07-30T09:03:00Z",
+  "started_at": "2026-07-30T09:03:00.012Z",
+  "completed_at": "2026-07-30T09:03:01.452Z"
 }
 ```
 
-`GET /analysis/{id}` returns `queued`, `running`, `completed`, or `failed`, with progress only when objectively measurable, timestamps, and a safe failure object. Initially the frontend can poll with bounded exponential backoff and stop at terminal states. SSE is preferred later for one-way status/findings events; WebSockets are unnecessary unless bidirectional interaction appears. A task queue/Redis will remain an internal change and must not alter the job resource.
+`GET /datasets/jobs/{id}` returns the same row. Status is `pending`, `running`, `succeeded`, or `failed`. The `result` payload is JSONB-safe and per-kind: profile -> `profile_id`, detect -> `finding_count` / `finding_ids`, score -> `score_id` / `score` / `grade`, history -> `comparison_id` / `has_drift`, recommendations -> `count` / `recommendation_ids`, validations -> `validation_id` / `recommendation_id` / `operation_kind`. The `error` payload is the standard sanitized envelope (`code`, `message`, `details`). The frontend should poll with bounded exponential backoff and stop at terminal states. SSE is preferred later for one-way status/findings events; WebSockets are unnecessary unless bidirectional interaction appears. A task queue/Redis will remain an internal change and must not alter the persisted `Job` shape.

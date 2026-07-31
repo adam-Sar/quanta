@@ -1,8 +1,8 @@
 # Data model
 
-## Task 8 state
+## Task 10 state
 
-`0001_foundation` establishes a concrete Alembic head. `0002_dataset_ingestion` creates the durable tables for logical datasets and their immutable versions. `0003_create_dataset_profiles` adds immutable profile artifacts. `0004_create_dataset_findings` adds immutable quality findings bound to the latest profile. `0005_create_dataset_quality_scores` adds immutable quality scoring rows. `0006_create_history_comparisons` adds immutable history comparison rows. `0007_create_ai_interpretations` adds immutable AI interpretation rows. `0008_create_recommendations` adds immutable recommendation rows (one row per structured, preview-only recommendation) with a documented `formula_version` (`task8-1.0`) and two JSONB payload columns (`operation_params`, `components`). Validation tables (Task 9) do not exist yet.
+`0001_foundation` establishes a concrete Alembic head. `0002_dataset_ingestion` creates the durable tables for logical datasets and their immutable versions. `0003_create_dataset_profiles` adds immutable profile artifacts. `0004_create_dataset_findings` adds immutable quality findings bound to the latest profile. `0005_create_dataset_quality_scores` adds immutable quality scoring rows. `0006_create_history_comparisons` adds immutable history comparison rows. `0007_create_ai_interpretations` adds immutable AI interpretation rows. `0008_create_recommendations` adds immutable recommendation rows (one row per structured, preview-only recommendation) with a documented `formula_version` (`task8-1.0`) and two JSONB payload columns (`operation_params`, `components`). `0009_create_validations` adds immutable validation rows (one row per deterministic recommendation preview) with a documented `formula_version` (`task9-1.0`) and two JSONB payload columns (`impact`, `components`). `0010_create_jobs` adds the durable analysis jobs table with three JSONB payload columns (`parameters`, `result`, `error`) and a documented `formula_version` (`task10-1.0`). Worker infrastructure (Task 11) does not exist yet.
 
 ### `datasets`
 
@@ -139,7 +139,47 @@ Indexes: `ix_quality_scores_dataset_created`, `ix_quality_scores_profile`, `ix_q
 
 Indexes: `ix_recommendations_dataset_created`, `ix_recommendations_profile`, `ix_recommendations_kind_severity`, `ix_recommendations_formula`.
 
-## Modeling rules for Task 9+
+### `validations` (Task 9)
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | Default `uuid4()`. |
+| `dataset_id` | UUID NOT NULL FK → `datasets.id` ON DELETE CASCADE | Validation scope. |
+| `dataset_version_id` | UUID NOT NULL FK → `dataset_versions.id` ON DELETE CASCADE | Source dataset version. |
+| `profile_id` | UUID NOT NULL FK → `dataset_profiles.id` ON DELETE CASCADE | Source profile. |
+| `recommendation_id` | UUID NOT NULL FK → `recommendations.id` ON DELETE CASCADE | Source Task 8 recommendation. |
+| `operation_kind` | VARCHAR(64) NOT NULL | Constrained operation kind (mirrors Task 8). |
+| `status` | VARCHAR(32) NOT NULL | `valid`, `warning`, `invalid`. |
+| `title` | VARCHAR(255) NOT NULL | Short human-readable preview title. |
+| `rationale` | VARCHAR(2000) NOT NULL | Human-readable summary of the projected effect. |
+| `impact` | JSONB NOT NULL | Structured preview: `affected_rows`, `affected_columns[]`, `summary`, `unexpected_side_effects[]`. |
+| `components` | JSONB NOT NULL | Source pointers for audit: `dataset_id`, `dataset_version_id`, `profile_id`, `recommendation_id`, `operation_kind`, `supporting_finding_ids[]`, `preview_status`, `formula_version`. |
+| `formula_version` | VARCHAR(64) NOT NULL | Identifier of the preview engine (current default `task9-1.0`). |
+| `created_at` | TIMESTAMPTZ NOT NULL DEFAULT now() | Insertion timestamp. |
+
+Indexes: `ix_validations_dataset_created`, `ix_validations_recommendation`, `ix_validations_status`, `ix_validations_formula`.
+
+### `jobs` (Task 10)
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | Default `uuid4()`. |
+| `dataset_id` | UUID NOT NULL FK → `datasets.id` ON DELETE CASCADE | Job scope. |
+| `profile_id` | UUID NULL FK → `dataset_profiles.id` ON DELETE SET NULL | Source profile when the wrapped operation is profile-bound; nullable for dataset-level jobs. |
+| `kind` | VARCHAR(64) NOT NULL | `profile`, `detect`, `score`, `history`, `recommendations`, `validations`. |
+| `status` | VARCHAR(32) NOT NULL | `pending`, `running`, `succeeded`, `failed`. |
+| `title` | VARCHAR(255) NOT NULL | Short human-readable job title. |
+| `parameters` | JSONB NOT NULL | Raw inputs as posted (kind, profile_id, parameters map). |
+| `result` | JSONB NOT NULL | Structured outcome of the wrapped service method; per-kind shape (see `backend/docs/jobs.md`). |
+| `error` | JSONB NOT NULL | Sanitized envelope on failure: `code`, `message`, `details`. Empty `{}` on success. |
+| `formula_version` | VARCHAR(64) NOT NULL | Identifier of the dispatcher (current default `task10-1.0`). |
+| `created_at` | TIMESTAMPTZ NOT NULL DEFAULT now() | Insertion timestamp. |
+| `started_at` | TIMESTAMPTZ NULL | When the wrapped service method was invoked. |
+| `completed_at` | TIMESTAMPTZ NULL | When the wrapped service method returned or failed. |
+
+Indexes: `ix_jobs_dataset_created`, `ix_jobs_profile`, `ix_jobs_status`, `ix_jobs_kind`.
+
+## Modeling rules for Task 11+
 
 1. UUID primary keys and timezone-aware `created_at`/`updated_at`.
 2. Foreign keys with deliberate delete behavior; no accidental cascades.
@@ -150,4 +190,4 @@ Indexes: `ix_recommendations_dataset_created`, `ix_recommendations_profile`, `ix
 7. Uniqueness constraints for identities and idempotency.
 8. Every migration must support a reasoned upgrade, downgrade, and review.
 
-Exact columns, enums, and retention policy for history tables (Task 6), AI artifacts (Task 7), recommendations (Task 8), and validation (Task 9) will be decided when those tasks begin rather than guessed now.
+Exact columns, enums, and retention policy for the Task 11 worker infrastructure will be decided when that task begins rather than guessed now.

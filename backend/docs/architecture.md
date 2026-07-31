@@ -2,7 +2,7 @@
 
 ## Status
 
-This document distinguishes **implemented in Task 1, Task 2, Task 3, Task 4, Task 5, Task 6, Task 7, and Task 8** from **planned** behavior.
+This document distinguishes **implemented in Task 1, Task 2, Task 3, Task 4, Task 5, Task 6, Task 7, Task 8, Task 9, and Task 10** from **planned** behavior.
 
 ## System principles
 
@@ -12,7 +12,7 @@ This document distinguishes **implemented in Task 1, Task 2, Task 3, Task 4, Tas
 4. Every transformation must pass deterministic validation and require explicit approval before creating a new immutable dataset version.
 5. API models are separate from persistence models.
 
-## Implemented component flow (Task 1 + Task 2 + Task 3 + Task 4 + Task 5 + Task 6 + Task 7 + Task 8)
+## Implemented component flow (Task 1 + Task 2 + Task 3 + Task 4 + Task 5 + Task 6 + Task 7 + Task 8 + Task 9 + Task 10)
 
 ```text
 HTTP client
@@ -44,6 +44,8 @@ HTTP client
   -> /datasets/{id}/comparisons and /datasets/{id}/lineage routes (Task 6)
   -> /datasets/{id}/interpretations routes (Task 7)
   -> /datasets/{id}/recommendations routes (Task 8)
+  -> /datasets/{id}/validations routes (Task 9)
+  -> /datasets/{id}/jobs routes (Task 10)
   -> ScoringService.score_latest / get_latest / get_for_version / list_for_dataset
           -> FindingRepository.list_for_profile (read immutable Task 4 rows)
           -> compute_quality_score (detection_confidence, data_error_confidence,
@@ -63,6 +65,25 @@ HTTP client
                  affected_columns, supporting_finding_ids, confidence,
                  priority, operation_kind, operation_params, preview_only,
                  formula_version, JSONB components)
+  -> /datasets/{id}/validations routes (Task 9)
+      -> ValidationService.validate_recommendation / get_validation / list_for_*
+          -> RecommendationRepository.get (load Task 8 recommendation)
+          -> DatasetVersion.path_for (read-only source file via FileStorage)
+          -> preview_recommendation (pure deterministic preview engine)
+          -> SQLAlchemy Session / ValidationRepository
+              -> validations (operation_kind, status, title, rationale,
+                 impact, components, formula_version)
+  -> /datasets/{id}/jobs routes (Task 10)
+      -> JobService.run / get_job / list_for_dataset
+          -> JobRepository.add (status=pending, commit, refresh)
+          -> JobRepository.update (status=running, started_at, commit, refresh)
+          -> run_job (dispatcher: profile / detect / score / history /
+             recommendations / validations -> Task 2-9 service method)
+          -> JobRepository.update (status=succeeded|failed, result|error,
+             completed_at, commit, refresh)
+          -> SQLAlchemy Session / JobRepository
+              -> jobs (kind, status, title, parameters, result, error,
+                 formula_version, timestamps)
   -> Error envelope: { code, message, details, request_id }
   -> Structured request log without request bodies or dataset contents
 ```
@@ -76,7 +97,9 @@ Polars / DuckDB / PyArrow profiling (Task 3 done; DuckDB later)
   -> objective scoring (Task 5 done)
   -> provider-independent AI interpretation (Task 7 done)
   -> deterministic, preview-only recommendation rule engine (Task 8 done)
-  -> deterministic recommendation validation + apply step (Task 9)
+  -> deterministic recommendation validation + apply step (Task 9 done)
+  -> durable analysis job resource (Task 10 done)
+  -> worker infrastructure and hardening (Task 11)
   -> explicit approval + deterministic transformation
   -> post-change validation + new dataset version
   -> quality report
@@ -96,6 +119,8 @@ Polars / DuckDB / PyArrow profiling (Task 3 done; DuckDB later)
 - `app/history`: deterministic history comparisons (Task 6). `HistoryService` reads the immutable Task 2-5 rows for two dataset versions and persists immutable `HistoryComparison` rows; lineage is computed on demand.
 - `app/ai`: provider-independent AI reasoning (Task 7). `ReasoningService` reads the Task 4 findings bound to the latest profile, calls the configured `LLMProvider`, and persists immutable `AIInterpretation` rows. Real provider SDKs land in a later task.
 - `app/recommendations`: deterministic recommendation rule engine (Task 8). `RecommendationService` consumes the same Task 4 findings and persists immutable, **preview-only** `Recommendation` rows. The rule engine never executes code on the dataset; the apply step lands in Task 9.
+- `app/validation`: deterministic recommendation preview engine (Task 9). `ValidationService` consumes a Task 8 recommendation, reads the source file through `FileStorage.path_for`, runs a bounded preview, and persists an immutable `Validation` row with a structured `impact` payload. The actual apply step (which would create a new immutable dataset version) lands in a later task.
+- `app/jobs`: durable analysis job resource (Task 10). `JobService` creates a `Job` row in `pending` status, runs the wrapped Task 2-9 service inline through `run_job`, updates the row to `succeeded` / `failed`, and exposes `get_job` / `list_for_dataset`. Job execution is **synchronous** in Task 10; a real worker lands in Task 11 hardening.
 - `app/storage`: pluggable `FileStorage` interface with a `LocalFileStorage` implementation (staging, key-validated promote, delete, read-only `path_for`).
 - `app/services`: orchestration (`DatasetService`) that wires storage, validator, readers, repository, and the session boundary.
 - `migrations/`: Alembic environment and revisions against `app.db.base.Base.metadata`.

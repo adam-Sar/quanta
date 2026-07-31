@@ -44,8 +44,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "structured, preview-only recommendations derived from the same "
             "findings. Task 9 adds a deterministic validation preview engine that "
             "consumes one recommendation, reads the source file, and persists the "
-            "projected impact without mutating anything. Validation, durable "
-            "analysis jobs, and worker infrastructure land in later tasks."
+            "projected impact without mutating anything. Task 10 adds a durable "
+            "analysis job resource that wraps the Task 2-9 operations as a "
+            "synchronous, queryable, auditable resource. Worker infrastructure "
+            "and hardening land in a later task."
         ),
         debug=runtime_settings.debug,
         lifespan=lifespan,

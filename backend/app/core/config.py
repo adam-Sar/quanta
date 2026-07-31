@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Quanta Data Reliability API"
-    app_version: str = "0.9.0"
+    app_version: str = "1.0.0"
     environment: Literal["development", "test", "staging", "production"] = "development"
     debug: bool = False
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
@@ -98,6 +98,14 @@ class Settings(BaseSettings):
     # API worker's memory during a validation preview.
     validation_formula_version: str = Field(
         default="task9-1.0", min_length=1, max_length=64
+    )
+
+    # Task 10 jobs settings. The jobs layer is the durable wrapper
+    # around the Task 2-9 analysis operations; the formula version is
+    # persisted on every ``Job`` row so a future task can audit
+    # persisted rows against the active dispatcher.
+    job_formula_version: str = Field(
+        default="task10-1.0", min_length=1, max_length=64
     )
 
     @property

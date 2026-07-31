@@ -32,7 +32,7 @@ def test_liveness_is_independent_of_database(client: TestClient) -> None:
     body = response.json()
     assert body["status"] == "ok"
     assert body["service"] == "Quanta Test API"
-    assert body["version"] == "0.9.0"
+    assert body["version"] == "1.0.0"
     assert body["environment"] == "test"
     assert body["timestamp"]
 

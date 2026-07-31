@@ -95,8 +95,10 @@ Copy `.env.example` to `.env`; never commit `.env`. Important current settings:
 | `AI_PROMPT_CHAR_BUDGET` | Soft upper bound on prompt size in characters |
 | `RECOMMENDATION_FORMULA_VERSION` | Identifier persisted on every Task 8 recommendation row |
 | `RECOMMENDATION_MAX_PER_RUN` | Maximum recommendations persisted per run; rows above the cap are trimmed by descending priority |
+| `VALIDATION_FORMULA_VERSION` | Identifier persisted on every Task 9 validation row |
+| `JOB_FORMULA_VERSION` | Identifier persisted on every Task 10 job row |
 
-Storage, LLM, and Redis variables are listed as future configuration contracts but remain unused in Task 8.
+Storage, LLM, and Redis variables are listed as future configuration contracts but remain unused in Task 10.
 
 ## Structure
 
@@ -106,8 +108,8 @@ backend/
     api/routes/{health,datasets,profiles,findings,scores,history,ai,recommendations}.py
     core/{config,exceptions,logging,middleware}.py
     db/{base,session}.py
-    db/models/{dataset,profile,finding,quality_score,history_comparison,ai_interpretation,recommendation}.py
-    db/repositories/{datasets,profiles,findings,quality_scores,history_comparisons,ai_interpretations,recommendations}.py
+    db/models/{dataset,profile,finding,quality_score,history_comparison,ai_interpretation,recommendation,validation,job}.py
+    db/repositories/{datasets,profiles,findings,quality_scores,history_comparisons,ai_interpretations,recommendations,validations,jobs}.py
     detection/{types,exceptions,detectors,service}.py
     ingestion/{types,exceptions,validators,readers}.py
     profiling/{types,exceptions,metrics,service}.py
@@ -115,7 +117,9 @@ backend/
     history/{types,exceptions,comparison,drift,lineage,service}.py
     ai/{types,exceptions,protocols,prompts,service}.py
     recommendations/{types,exceptions,formula,service}.py
-    schemas/{common,datasets,health,profiles,findings,scores,history,ai,recommendations}.py
+    validation/{types,exceptions,formula,service}.py
+    jobs/{types,exceptions,runner,service}.py
+    schemas/{common,datasets,health,profiles,findings,scores,history,ai,recommendations,validations,jobs}.py
     services/{dataset_service,exceptions}.py
     storage/{files}.py
     api/{dependencies,router}.py
@@ -179,6 +183,23 @@ backend/
 3. Database failures roll back the inserts only; the original files, profiles, scores, finding rows, and AI interpretation rows are never mutated.
 4. `GET /datasets/{dataset_id}/recommendations/{recommendation_id}` and `GET /datasets/{dataset_id}/recommendations` return the persisted recommendation rows without recomputing.
 5. The deterministic rule engine and all thresholds are documented in `backend/docs/recommendations.md`.
+
+## Validation lifecycle (Task 9)
+
+1. `POST /datasets/{dataset_id}/recommendations/{recommendation_id}/validate` (Task 9) loads the persisted Task 8 recommendation, resolves the source file via `FileStorage.path_for`, runs the deterministic `preview_recommendation` engine over the bounded Polars/PyArrow frame, and persists a fresh immutable `Validation` row in a single transaction. **404** if the recommendation does not exist; **422** if the source path cannot be resolved.
+2. The preview engine is **preview-only**: the `impact` payload is a structured summary, not an applied effect. The actual apply call (which would create a new immutable dataset version) lands in a later task.
+3. Database failures roll back the inserts only; the original file, profile rows, score rows, finding rows, and recommendation rows are never mutated.
+4. `GET /datasets/{dataset_id}/recommendations/{recommendation_id}/validations` returns a paginated list of the validation rows ordered by creation time desc; `GET .../validations/{validation_id}` returns a single row.
+5. The deterministic preview engine and all per-operation behaviour are documented in `backend/docs/validation.md`.
+
+## Analysis jobs lifecycle (Task 10)
+
+1. `POST /datasets/{dataset_id}/jobs` (Task 10) creates a fresh `Job` row in `pending` status, sets it to `running`, dispatches to the matching Task 2-9 service method via `run_job`, and updates the row to `succeeded` / `failed` with the structured result (or sanitized error envelope) and timestamps. Job execution is **synchronous** in Task 10.
+2. Each `Job` row records the requested `kind` (`profile`, `detect`, `score`, `history`, `recommendations`, `validations`), the persisted `parameters`, the lifecycle status, and the `result` / `error` JSONB payload. Re-running creates a new row; existing rows are never mutated.
+3. The runner catches `ApplicationError` and `DatasetNotFoundError` and translates them into a structured `failed` outcome with a sanitized envelope; unexpected exceptions roll back the insert.
+4. Database failures roll back the insert only; the original file and the upstream Task 2-9 rows are never mutated by the jobs layer.
+5. `GET /datasets/{dataset_id}/jobs` returns a paginated list of the job rows ordered by creation time desc; `GET /datasets/jobs/{job_id}` returns a single row by id.
+6. The dispatcher contract, supported `kind` values, and limitations are documented in `backend/docs/jobs.md`. Worker infrastructure and hardening land in Task 11.
 
 ## Logging and errors
 

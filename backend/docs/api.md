@@ -1,6 +1,6 @@
 # Backend API
 
-**Current version:** 0.8.0 (Task 8 recommendations). Interactive OpenAPI is available at `/docs`; machine-readable OpenAPI is `/openapi.json`.
+**Current version:** 1.0.0 (Task 10 durable analysis jobs). Interactive OpenAPI is available at `/docs`; machine-readable OpenAPI is `/openapi.json`.
 
 ## Conventions
 
@@ -486,6 +486,125 @@ List every recommendation row for a dataset, ordered by creation time desc. **40
 - `page` >= 1 (default 1).
 - `page_size` 1-200 (default 50).
 
+## Validations (Task 9)
+
+### `POST /datasets/{dataset_id}/recommendations/{recommendation_id}/validate`
+
+Run the deterministic validation preview engine against the source file for a persisted recommendation and persist a fresh immutable `Validation` row. **404** if the recommendation does not exist; **422** if the source path cannot be resolved or the operation is not applicable.
+
+**201**
+
+```json
+{
+  "validation_id": "9d4f2c40-6b29-4a90-9f8f-1dbf8cf01a2c",
+  "dataset_id": "5a8581da-0279-4a58-9f09-22f06dceaa10",
+  "dataset_version_id": "690b72a0-b1eb-4161-b1a1-780bdd0715df",
+  "profile_id": "8d4f2c40-6b29-4a90-9f8f-1dbf8cf01a2c",
+  "recommendation_id": "5fa8dac2-e53f-4886-a3ee-88d0de908168",
+  "operation_kind": "drop_column",
+  "status": "valid",
+  "title": "Validation preview for drop_column on 'Drop sparse column email'",
+  "rationale": "1 column would be removed; 0 unexpected side effects.",
+  "impact": {
+    "affected_rows": null,
+    "affected_columns": ["email"],
+    "summary": "1 column would be removed; 0 unexpected side effects.",
+    "unexpected_side_effects": []
+  },
+  "components": {
+    "dataset_id": "...",
+    "dataset_version_id": "...",
+    "profile_id": "...",
+    "recommendation_id": "...",
+    "operation_kind": "drop_column",
+    "supporting_finding_ids": ["..."],
+    "preview_status": "valid",
+    "formula_version": "task9-1.0"
+  },
+  "formula_version": "task9-1.0",
+  "created_at": "2026-07-30T12:00:00.000+00:00"
+}
+```
+
+### `GET /datasets/{dataset_id}/recommendations/{recommendation_id}/validations`
+
+List every validation row for a recommendation, ordered by creation time desc. **404** if the recommendation is unknown.
+
+**Query parameters**
+
+- `page` >= 1 (default 1).
+- `page_size` 1-200 (default 50).
+
+### `GET /datasets/{dataset_id}/recommendations/{recommendation_id}/validations/{validation_id}`
+
+Return a single persisted validation row. **404** if the validation does not exist.
+
+## Analysis jobs (Task 10)
+
+### `POST /datasets/{dataset_id}/jobs`
+
+Create and run a durable analysis job for the dataset. The job row starts in `pending`, flips to `running`, then completes in `succeeded` (with a structured `result` payload) or `failed` (with a sanitized `error` envelope). Job execution is **synchronous** in Task 10. **404** if the dataset does not exist; **422** for unknown `kind` or invalid `parameters`.
+
+**Body**
+
+```json
+{
+  "kind": "profile",
+  "profile_id": null,
+  "title": "Profile dataset version",
+  "parameters": {}
+}
+```
+
+The supported `kind` values and their `parameters` are:
+
+| `kind` | Required parameters |
+|---|---|
+| `profile` | none |
+| `detect` | none |
+| `score` | none |
+| `history` | `base_version_id`, `target_version_id` (UUID strings) |
+| `recommendations` | none |
+| `validations` | `recommendation_id` (UUID string) |
+
+**201**
+
+```json
+{
+  "job_id": "8d4f2c40-6b29-4a90-9f8f-1dbf8cf01a2c",
+  "dataset_id": "5a8581da-0279-4a58-9f09-22f06dceaa10",
+  "profile_id": "8d4f2c40-6b29-4a90-9f8f-1dbf8cf01a2c",
+  "kind": "profile",
+  "status": "succeeded",
+  "title": "Profile dataset version",
+  "parameters": {},
+  "result": {
+    "profile_id": "8d4f2c40-6b29-4a90-9f8f-1dbf8cf01a2c",
+    "dataset_id": "5a8581da-0279-4a58-9f09-22f06dceaa10",
+    "dataset_version_id": "690b72a0-b1eb-4161-b1a1-780bdd0715df",
+    "sample_size": 329881
+  },
+  "error": {},
+  "formula_version": "task10-1.0",
+  "created_at": "2026-07-30T12:00:00.000+00:00",
+  "started_at": "2026-07-30T12:00:00.012+00:00",
+  "completed_at": "2026-07-30T12:00:01.452+00:00"
+}
+```
+
+### `GET /datasets/{dataset_id}/jobs`
+
+List every job row for a dataset, ordered by creation time desc. **404** if the dataset is unknown.
+
+**Query parameters**
+
+- `page` >= 1 (default 1).
+- `page_size` 1-200 (default 50).
+
+### `GET /datasets/jobs/{job_id}`
+
+Return a single persisted job row. **404** if the job does not exist.
+
 ## Error contract
 
 All errors use:
@@ -500,7 +619,8 @@ All errors use:
 | 404 | `dataset_not_found`, `version_not_found` |
 | 409 | `scoring_not_scoreable` |
 | 409 | `dataset_not_profileable`, `detection_not_profileable`, `scoring_not_scoreable`, `invalid_profile_state`, `invalid_detection_state`, `invalid_scoring_state`, `recommendations_not_available`, `interpretation_not_available` |
-| 422 | `invalid_recommendation_state` |
+| 422 | `invalid_recommendation_state`, `invalid_validation_state`, `invalid_job_state` |
+| 404 | `job_not_found` |
 | 413 | `upload_too_large` |
 | 415 | `unsupported_file_format` |
 | 422 | `validation_error` |
@@ -518,4 +638,8 @@ Specific codes are not final; the envelope and `X-Request-ID` propagation are.
 - Task 7 added `POST /datasets/{dataset_id}/interpretations` (201), `GET /datasets/{dataset_id}/interpretations/{interpretation_id}` (200), and `GET /datasets/{dataset_id}/interpretations` (200 paginated list) for the provider-independent AI reasoning layer.
 - Task 8 added `POST /datasets/{dataset_id}/recommendations` (201), `GET /datasets/{dataset_id}/recommendations/{recommendation_id}` (200), and `GET /datasets/{dataset_id}/recommendations` (200 paginated list) for the deterministic, preview-only recommendation rule engine.
 - Added `recommendations_not_available` (409) and `invalid_recommendation_state` (422) codes.
+- Task 9 added `POST /datasets/{dataset_id}/recommendations/{recommendation_id}/validate` (201), `GET .../validations` (200 paginated list), and `GET .../validations/{validation_id}` (200) for the deterministic recommendation preview engine.
+- Added `invalid_validation_state` (422) code.
+- Task 10 added `POST /datasets/{dataset_id}/jobs` (201), `GET .../jobs` (200 paginated list), and `GET /datasets/jobs/{job_id}` (200) for the durable analysis jobs resource.
+- Added `job_not_found` (404) and `invalid_job_state` (422) codes.
 - `X-Request-ID` continues to be included in the response headers of every endpoint.

@@ -14,6 +14,7 @@ from app.db.repositories.ai_interpretations import AIInterpretationRepository
 from app.db.repositories.datasets import DatasetRepository
 from app.db.repositories.findings import FindingRepository
 from app.db.repositories.history_comparisons import HistoryComparisonRepository
+from app.db.repositories.jobs import JobRepository
 from app.db.repositories.profiles import ProfileRepository
 from app.db.repositories.quality_scores import QualityScoreRepository
 from app.db.repositories.recommendations import RecommendationRepository
@@ -24,6 +25,7 @@ from app.history.service import HistoryService
 from app.ingestion.readers import CsvMetadataReader, MetadataReaderRegistry, ParquetMetadataReader
 from app.ingestion.types import DatasetFormat
 from app.ingestion.validators import DatasetFileValidator
+from app.jobs.service import JobService
 from app.profiling.metrics import DatasetProfiler
 from app.profiling.service import ProfilingService
 from app.recommendations.service import RecommendationService
@@ -158,4 +160,22 @@ def get_validation_service(
         recommendation_service=recommendation_service,
         storage=LocalFileStorage(settings.storage_path),
         settings=settings,
+    )
+
+
+def get_job_service(
+    session: Annotated[Session, Depends(get_db)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> JobService:
+    """Compose the Task 10 durable analysis jobs service with persistence."""
+
+    return JobService(
+        session=session,
+        repository=JobRepository(session),
+        profiling_service=get_profiling_service(session, settings),
+        detection_service=get_detection_service(session, settings),
+        scoring_service=get_scoring_service(session, settings),
+        history_service=get_history_service(session, settings),
+        recommendation_service=get_recommendation_service(session, settings),
+        validation_service=get_validation_service(session, settings),
     )
