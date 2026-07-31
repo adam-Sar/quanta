@@ -1,6 +1,8 @@
 import { Route, Routes } from 'react-router-dom'
 
 import { AppShell } from './components/layout/AppShell'
+import { DatasetResourcePage } from './pages/DatasetResourcePage'
+import { DatasetsPage } from './pages/DatasetsPage'
 import { OverviewPage } from './pages/OverviewPage'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 
@@ -9,16 +11,8 @@ export function App() {
     <Routes>
       <Route element={<AppShell />}>
         <Route element={<OverviewPage />} path="/" />
-        <Route
-          element={
-            <PlaceholderPage
-              description="Inspect source inventory, immutable versions, and ingestion state."
-              task="The dataset explorer task"
-              title="Datasets"
-            />
-          }
-          path="/datasets"
-        />
+        <Route element={<DatasetsPage />} path="/datasets" />
+        <Route element={<DatasetResourcePage />} path="/datasets/:datasetId" />
         <Route
           element={
             <PlaceholderPage
