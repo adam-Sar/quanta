@@ -7,6 +7,7 @@ from app.db.models.history_comparison import HistoryComparison
 from app.db.models.profile import ColumnProfile, DatasetProfile
 from app.db.models.quality_score import QualityScore
 from app.db.models.recommendation import Recommendation
+from app.db.models.validation import Validation
 
 __all__ = [
     "AIInterpretation",
@@ -19,4 +20,5 @@ __all__ = [
     "HistoryComparison",
     "QualityScore",
     "Recommendation",
+    "Validation",
 ]

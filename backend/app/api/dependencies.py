@@ -17,6 +17,7 @@ from app.db.repositories.history_comparisons import HistoryComparisonRepository
 from app.db.repositories.profiles import ProfileRepository
 from app.db.repositories.quality_scores import QualityScoreRepository
 from app.db.repositories.recommendations import RecommendationRepository
+from app.db.repositories.validations import ValidationRepository
 from app.db.session import get_db
 from app.detection.service import DetectionService
 from app.history.service import HistoryService
@@ -29,6 +30,7 @@ from app.recommendations.service import RecommendationService
 from app.scoring.service import ScoringService
 from app.services.dataset_service import DatasetService
 from app.storage.files import LocalFileStorage
+from app.validation.service import ValidationService
 
 
 def get_dataset_service(
@@ -138,5 +140,22 @@ def get_recommendation_service(
         finding_repository=FindingRepository(session),
         score_repository=QualityScoreRepository(session),
         interpretation_repository=AIInterpretationRepository(session),
+        settings=settings,
+    )
+
+
+def get_validation_service(
+    session: Annotated[Session, Depends(get_db)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> ValidationService:
+    """Compose the Task 9 deterministic validation service with persistence."""
+
+    recommendation_service = get_recommendation_service(session, settings)
+    return ValidationService(
+        session=session,
+        repository=ValidationRepository(session),
+        recommendation_repository=RecommendationRepository(session),
+        recommendation_service=recommendation_service,
+        storage=LocalFileStorage(settings.storage_path),
         settings=settings,
     )

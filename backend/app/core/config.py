@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "Quanta Data Reliability API"
-    app_version: str = "0.8.0"
+    app_version: str = "0.9.0"
     environment: Literal["development", "test", "staging", "production"] = "development"
     debug: bool = False
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
@@ -91,6 +91,14 @@ class Settings(BaseSettings):
         default="task8-1.0", min_length=1, max_length=64
     )
     recommendation_max_per_run: int = Field(default=50, ge=1, le=500)
+
+    # Task 9 validation settings. The deterministic preview engine
+    # is bounded by ``profile_default_sample_rows`` (shared with the
+    # Task 3 profiler) so a pathological dataset cannot exhaust the
+    # API worker's memory during a validation preview.
+    validation_formula_version: str = Field(
+        default="task9-1.0", min_length=1, max_length=64
+    )
 
     @property
     def max_upload_size_bytes(self) -> int:

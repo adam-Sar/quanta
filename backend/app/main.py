@@ -42,8 +42,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "provider-independent AI reasoning over the latest detection batch. "
             "Task 8 adds a deterministic recommendations rule engine that emits "
             "structured, preview-only recommendations derived from the same "
-            "findings. Validation, durable analysis jobs, and worker infrastructure "
-            "land in later tasks."
+            "findings. Task 9 adds a deterministic validation preview engine that "
+            "consumes one recommendation, reads the source file, and persists the "
+            "projected impact without mutating anything. Validation, durable "
+            "analysis jobs, and worker infrastructure land in later tasks."
         ),
         debug=runtime_settings.debug,
         lifespan=lifespan,
