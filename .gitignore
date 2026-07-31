@@ -28,3 +28,13 @@ backend/migrations/versions/__pycache__/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Personal / working files (not part of the project)
+# These are operator-side scripts and working docs that the
+# project history does not need to carry.
+.git-commit-*.bat
+.git-commit-*.sh
+.run-checks.bat
+.run-checks.sh
+HANDOFF.md
+focus_chain_*.md
