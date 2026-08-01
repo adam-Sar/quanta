@@ -151,6 +151,11 @@ export interface DatasetProfileResponse {
   columns: ColumnProfileResponse[]
 }
 
+export interface DatasetProfileListResponse {
+  items: DatasetProfileResponse[]
+  pagination: Pagination
+}
+
 export type FindingKind = 'missingness' | 'duplicates' | 'invalid_values' | 'outlier' | 'cardinality'
 export type FindingSeverity = 'info' | 'low' | 'medium' | 'high' | 'critical'
 
