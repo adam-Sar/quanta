@@ -2,6 +2,7 @@ import { request } from './client'
 import type {
   DatasetProfileListResponse,
   DatasetProfileResponse,
+  DetectionRunResponse,
   FindingListResponse,
   LineageResponse,
   QualityScoreResponse,
@@ -54,6 +55,12 @@ export function listFindings(
     page_size: String(pageSize),
   })
   return request<FindingListResponse>(`/datasets/${datasetId}/detections?${searchParams.toString()}`)
+}
+
+export function createDatasetDetection(datasetId: string): Promise<DetectionRunResponse> {
+  return request<DetectionRunResponse>(`/datasets/${datasetId}/detections`, {
+    method: 'POST',
+  })
 }
 
 export function getDatasetScore(datasetId: string): Promise<QualityScoreResponse> {

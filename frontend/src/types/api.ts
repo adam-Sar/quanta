@@ -179,6 +179,13 @@ export interface FindingListResponse {
   pagination: Pagination
 }
 
+export interface DetectionRunResponse {
+  dataset_id: string
+  profile_id: string | null
+  finding_count: number
+  findings: FindingResponse[]
+}
+
 export type QualityGrade = 'A' | 'B' | 'C' | 'D' | 'F'
 
 export interface ScoreComponentBucket {
