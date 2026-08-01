@@ -1,4 +1,5 @@
-import { AlertOctagon, ClipboardList } from 'lucide-react'
+import { AlertOctagon, Radar } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 import type { FindingResponse, FindingSeverity } from '../../types/api'
 import { formatNumber, formatTimestamp } from '../../lib/utils'
@@ -7,6 +8,7 @@ import { SeverityBadge } from '../ui/SeverityBadge'
 import { Panel, SectionHeading } from '../ui/Panel'
 
 interface FindingsPreviewProps {
+  datasetId: string
   items: FindingResponse[]
   total: number
 }
@@ -23,16 +25,27 @@ function topFindings(items: FindingResponse[], limit: number) {
     .slice(0, limit)
 }
 
-export function FindingsPreview({ items, total }: FindingsPreviewProps) {
+export function FindingsPreview({ datasetId, items, total }: FindingsPreviewProps) {
   const top = topFindings(items, 5)
 
   return (
     <Panel>
       <SectionHeading
-        description="The top five findings by severity explain why the quality score is what it is. Deeper investigation lives in the dedicated findings view."
+        description="The top five findings by severity explain why the quality score is what it is. Open the dedicated findings view for filtering, sorting, and full detail payloads."
         eyebrow="Signal"
         title="Key findings"
-        action={<Badge dot tone="muted">{formatNumber(total)} total</Badge>}
+        action={
+          <div className="flex flex-wrap items-center justify-end gap-1">
+            <Badge dot tone="muted">{formatNumber(total)} total</Badge>
+            <Link
+              className="inline-flex items-center gap-1 rounded border border-line bg-elevated px-2 py-1 text-[11px] font-semibold tracking-wide text-muted hover:border-accent/60 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              to={`/datasets/${datasetId}/findings`}
+            >
+              <Radar aria-hidden="true" size={11} />
+              Open findings
+            </Link>
+          </div>
+        }
       />
       <div className="mt-6 space-y-3">
         {top.length === 0 ? (
@@ -59,10 +72,6 @@ export function FindingsPreview({ items, total }: FindingsPreviewProps) {
             <span className="font-mono text-[11px] text-muted">{formatTimestamp(finding.finding_id ? finding.finding_id : '')}</span>
           </article>
         ))}
-      </div>
-      <div className="mt-5 flex items-center gap-2 border-t border-line pt-4 text-xs text-muted">
-        <ClipboardList aria-hidden="true" size={14} />
-        <span>The findings table is implemented in its dedicated task; this preview is the overview surface only.</span>
       </div>
     </Panel>
   )
