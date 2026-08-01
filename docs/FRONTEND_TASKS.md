@@ -334,3 +334,78 @@ Proceed to **TASK 5 — Findings**. Task 5 should consume the exact findings con
 - 2026-07-31: User confirmed "continue" — Task 4 — Profiling starts now.
 - 2026-08-01: Pausing Task 4 pending live-data verification with PostgreSQL.
 - 2026-08-01: Task 4 — Profiling implemented, typechecked, production-built, and committed as `ee7cdbc` (profile API wrappers + `DatasetProfileListResponse`) · `97d2bde` (column profile table, detail card, and run history components) · `2219fb9` (dedicated `/datasets/{id}/profile` page and route registration) · `8e56ca6` (overview-to-profiling navigation in `DatasetOverviewPage` and `ProfileSummaryCard`). The live browser inspection still depends on PostgreSQL being available; the page only saw the sanitized `database_unavailable` error during this commit. Task 5 — Findings is the next recommended task.
+
+
+## Design Refactor
+
+A page-first design pass replaced the AI-generated decoration patterns
+with a calmer, data-product feel. Backend contracts, query keys, the
+React Router route table, and the existing primitives
+(`Panel`, `Badge`, `Button`, `Metric`, `EmptyState`, `ErrorState`,
+`LoadingSkeleton`, `Modal`, `SeverityBadge`) are unchanged.
+
+Inspiration sources:
+
+- **Metabase** — table calm, generous breathing room, eyebrow labels.
+- **Datadog** — dense investigation pages, severity-as-stripe, monitor-row patterns.
+- **Linear** — typography restraint, content-first sidebar, keyboard-first affordances.
+- **Vercel** — restrained chrome, sparklines over infographics.
+- **OpenMetadata** — data-catalog identity surface, description-led metadata.
+
+Important changes:
+
+- **Application shell** — sidebar drops the "Data reliability" subtitle,
+  the "WORKSPACE" eyebrow, the per-nav-item descriptions, the
+  "SYSTEM STATUS" panel, and the "CONTROL PLANE / 0.1" mono caption.
+  The topbar drops the "WORKSPACE / CONTROL PLANE" eyebrow and the
+  "API Operational" badge. Active nav state is now a 1px dot + tinted
+  background instead of a 3px inset accent border. `index.css` drops
+  the decorative top-of-body linear-gradient.
+- **Overview page** — removes the marketing hero ("Reliability work
+  starts with an honest signal"), the three fake Metric tiles
+  ("Connected / Backend / Auditable"), the decorative pipeline
+  ("From source to decision"), and the "Workspace state" empty state.
+  Adds a Datadog-style health strip and a real Recent datasets table.
+- **Datasets list page** — removes the three dummy metric tiles
+  (one read "Not scored"). Moves the inventory count to the panel
+  header.
+- **Dataset Overview** — replaces the 7-button header action row with a
+  real tab bar (Overview / Profile / Findings / History / AI /
+  Recommendations / Jobs). Drops the four metric tiles. The new tab
+  bar is the `DatasetTabs` component in `components/datasets/`.
+- **Profile / Findings / History / AI / Recommendations / Validations
+  / Jobs pages** — all adopt the `DatasetTabs` and the new
+  `PageHeader` pattern (title + one-line description + primary CTA).
+  All drop their four metric tiles (numbers already live in panel
+  headers or pagination footers). All drop the `border-l-2
+  border-l-{tone}/50` decoration panels in favour of the shared
+  `ErrorState` + `Panel` primitives. All drop the post-success
+  celebration panel in favour of a one-line caption.
+- **Findings page** — pagination footer moved inline into the panel;
+  the standalone `PaginationControls` is no longer used by the
+  dataset pages.
+- **AI analysis page** — hypotheses are now numbered (#1, #2, …)
+  inside the cards; the hypothesis detail block moved from the
+  bottom of the page into a sub-section of the selected
+  interpretation Panel.
+- **Validations page** — kept preview-only; the previous "Run
+  validation" button was removed because validations are produced by
+  the backend when a recommendation is applied.
+- **Extracted primitive** — `components/datasets/DatasetTabs.tsx`
+  (3rd use materialised with the Findings page; was inline in
+  Overview and Profile before). No chart library, no new tokens, no
+  new design-system package — kept the refactor focused on visible
+  improvements.
+
+Commit history (oldest first):
+
+- `9aec625` refactor(frontend): redesign Overview page
+- `79b5635` refactor(frontend): clean up application shell
+- `36d2724` refactor(frontend): redesign Datasets list page
+- `02f4fb8` refactor(frontend): redesign Dataset Overview (tab bar)
+- `61f17c3` refactor(frontend): redesign Profile page
+- `92264c2` refactor(frontend): extract DatasetTabs
+- `c852e5b` refactor(frontend): redesign Findings page
+- `1cc3c2f` refactor(frontend): redesign History page
+- `1a4882d` refactor(frontend): redesign AI analysis page
+- `42abfcd` refactor(frontend): redesign Recommendations / Validations / Jobs
