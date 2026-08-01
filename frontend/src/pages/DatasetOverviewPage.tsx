@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Brain, Gauge, GitCompare, Radar, ScrollText, Sparkles, TableProperties } from 'lucide-react'
+import { ArrowLeft, Brain, FileCheck2, Gauge, GitCompare, Radar, ScrollText, Sparkles, TableProperties } from 'lucide-react'
 
 import { getDataset } from '../api/datasets'
 import {
@@ -118,6 +118,9 @@ export function DatasetOverviewPage() {
             </Link>
             <Link to={`/datasets/${dataset.id}/ai`}>
               <Button size="sm" variant="secondary"><Brain aria-hidden="true" size={14} />AI</Button>
+            </Link>
+            <Link to={`/datasets/${dataset.id}/recommendations`}>
+              <Button size="sm" variant="secondary"><FileCheck2 aria-hidden="true" size={14} />Recs</Button>
             </Link>
           </div>
         }
