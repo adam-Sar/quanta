@@ -1,16 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useParams } from 'react-router-dom'
-import {
-  ArrowLeft,
-  CircleAlert,
-  History,
-  Play,
-  ScrollText,
-  Sparkles,
-  Timer,
-  TriangleAlert,
-} from 'lucide-react'
+import { Link, NavLink, useParams } from 'react-router-dom'
+import { Play, TriangleAlert } from 'lucide-react'
 
 import { getDataset } from '../api/datasets'
 import {
@@ -22,7 +13,6 @@ import { ApiError } from '../api/client'
 import { ColumnProfileTable } from '../components/profile/ColumnProfileTable'
 import { ColumnProfileDetailCard } from '../components/profile/ColumnProfileDetailCard'
 import { ProfileRunsTable } from '../components/profile/ProfileRunsTable'
-import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { ErrorState } from '../components/ui/ErrorState'
 import { LoadingSkeleton } from '../components/ui/LoadingSkeleton'
@@ -32,9 +22,49 @@ import { formatNumber, formatTimestamp } from '../lib/utils'
 
 const PROFILE_PAGE_SIZE = 50
 
+const DATASET_TABS = [
+  { label: 'Overview', to: '' },
+  { label: 'Profile', to: 'profile' },
+  { label: 'Findings', to: 'findings' },
+  { label: 'History', to: 'history' },
+  { label: 'AI', to: 'ai' },
+  { label: 'Recommendations', to: 'recommendations' },
+  { label: 'Jobs', to: 'jobs' },
+] as const
+
+function DatasetTabs({ datasetId }: { datasetId: string }) {
+  return (
+    <nav
+      aria-label="Dataset sections"
+      className="flex flex-wrap items-center gap-x-1 gap-y-1 border-b border-line"
+    >
+      {DATASET_TABS.map(({ label, to }) => (
+        <NavLink
+          className={({ isActive }) =>
+            `relative -mb-px border-b-2 px-3 py-2.5 text-sm transition-colors ${
+              isActive
+                ? 'border-accent text-ink'
+                : 'border-transparent text-muted hover:text-ink'
+            }`
+          }
+          end={to === ''}
+          key={to || 'overview'}
+          to={`/datasets/${datasetId}/${to}`}
+        >
+          {label}
+        </NavLink>
+      ))}
+    </nav>
+  )
+}
+
 function describeError(error: unknown, fallback: string) {
   if (error instanceof ApiError) {
-    if (error.code === 'dataset_not_profileable' || error.code === 'profile_not_available' || error.status === 409) {
+    if (
+      error.code === 'dataset_not_profileable' ||
+      error.code === 'profile_not_available' ||
+      error.status === 409
+    ) {
       return {
         title: 'Profile is not available yet',
         message: 'The backend has no profile for this dataset yet. Trigger a run from the action button to compute the first one.',
@@ -42,11 +72,7 @@ function describeError(error: unknown, fallback: string) {
       }
     }
     if (error.status === 404) {
-      return {
-        title: 'Resource unavailable',
-        message: error.message,
-        requestId: error.requestId,
-      }
+      return { title: 'Resource unavailable', message: error.message, requestId: error.requestId }
     }
     return { title: fallback, message: error.message, requestId: error.requestId }
   }
@@ -97,12 +123,19 @@ export function DatasetProfilingPage() {
   const runMutationErrorInfo = useMemo(() => {
     if (!runMutationError) return null
     if (runMutationError instanceof ApiError) {
-      return { message: runMutationError.message, requestId: runMutationError.requestId, code: runMutationError.code }
+      return {
+        message: runMutationError.message,
+        requestId: runMutationError.requestId,
+        code: runMutationError.code,
+      }
     }
-    return { message: 'Profile run could not be started.', requestId: null as string | null, code: 'request_failed' as string }
+    return {
+      message: 'Profile run could not be started.',
+      requestId: null as string | null,
+      code: 'request_failed' as string,
+    }
   }, [runMutationError])
 
-  // Default the selection to the latest run on first load and when runs change.
   useEffect(() => {
     if (selectedProfileId) return
     if (latestProfileQuery.data) {
@@ -137,13 +170,22 @@ export function DatasetProfilingPage() {
     return (
       <div className="space-y-6">
         <LoadingSkeleton className="max-w-2xl" lines={3} />
-        <Panel><LoadingSkeleton lines={6} /></Panel>
+        <Panel>
+          <LoadingSkeleton lines={6} />
+        </Panel>
       </div>
     )
   }
   if (datasetQuery.isError || !datasetQuery.data) {
     const error = describeError(datasetQuery.error, 'Unable to load this dataset')
-    return <ErrorState message={error.message} onRetry={() => void datasetQuery.refetch()} requestId={error.requestId} title={error.title} />
+    return (
+      <ErrorState
+        message={error.message}
+        onRetry={() => void datasetQuery.refetch()}
+        requestId={error.requestId}
+        title={error.title}
+      />
+    )
   }
 
   const dataset = datasetQuery.data
@@ -151,82 +193,49 @@ export function DatasetProfilingPage() {
   const totalRuns = profileRunsQuery.data?.pagination.total_items ?? 0
   const totalPages = profileRunsQuery.data?.pagination.total_pages ?? 1
   const latest = latestProfileQuery.data
-  const profileError = latestProfileQuery.isError ? describeError(latestProfileQuery.error, 'Profile is not available yet') : null
-  const runsError = profileRunsQuery.isError ? describeError(profileRunsQuery.error, 'Profile runs could not be loaded') : null
+  const profileError = latestProfileQuery.isError
+    ? describeError(latestProfileQuery.error, 'Profile is not available yet')
+    : null
+  const runsError = profileRunsQuery.isError
+    ? describeError(profileRunsQuery.error, 'Profile runs could not be loaded')
+    : null
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <PageHeader
         action={
-          <div className="flex items-center gap-2">
-            <Link to={`/datasets/${dataset.id}`}>
-              <Button size="sm" variant="ghost"><ArrowLeft aria-hidden="true" size={14} />Back to overview</Button>
-            </Link>
-            <Button
-              disabled={runProfileMutation.isPending || !currentVersion}
-              onClick={() => { runProfileMutation.reset(); runProfileMutation.mutate() }}
-              size="sm"
-              variant="primary"
-            >
-              <Play aria-hidden="true" size={14} />
-              {runProfileMutation.isPending ? 'Running…' : (latest ? 'Re-run profile' : 'Run profile')}
-            </Button>
-          </div>
+          <Button
+            disabled={runProfileMutation.isPending || !currentVersion}
+            onClick={() => {
+              runProfileMutation.reset()
+              runProfileMutation.mutate()
+            }}
+            variant="primary"
+          >
+            <Play aria-hidden="true" size={14} />
+            {runProfileMutation.isPending
+              ? 'Running…'
+              : latest
+                ? 'Re-run profile'
+                : 'Run profile'}
+          </Button>
         }
-        description={currentVersion ? `Profiling the current version v${currentVersion.version_number} (${currentVersion.original_filename}). The metrics shown come from the immutable JSONB rows persisted by the backend.` : 'The dataset has no immutable version yet, so a profile cannot be created.'}
-        eyebrow="Dataset profiling"
+        description={
+          currentVersion
+            ? `Profiling the current version v${currentVersion.version_number} (${currentVersion.original_filename}). The metrics shown come from the immutable JSONB rows persisted by the backend.`
+            : 'The dataset has no immutable version yet, so a profile cannot be created.'
+        }
         title={dataset.name}
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Panel className="p-4">
-          <p className="text-xs text-muted">Sample size</p>
-          <p className="mt-3 text-xl font-semibold text-ink">{latest ? formatNumber(latest.sample_size) : '—'}</p>
-          <p className="mt-1 text-xs text-muted">
-            {latest ? (latest.sampled === 'full' ? 'Full sample considered' : 'Bounded sample considered') : 'shown after a profile run'}
-          </p>
-        </Panel>
-        <Panel className="p-4">
-          <p className="text-xs text-muted">Profile duration</p>
-          <p className="mt-3 text-xl font-semibold text-ink">{latest ? `${formatNumber(latest.duration_ms)} ms` : '—'}</p>
-          <p className="mt-1 text-xs text-muted">wall-clock for the latest run</p>
-        </Panel>
-        <Panel className="p-4">
-          <p className="text-xs text-muted">Columns profiled</p>
-          <p className="mt-3 text-xl font-semibold text-ink">{latest ? formatNumber(latest.columns.length) : '—'}</p>
-          <p className="mt-1 text-xs text-muted">per-column metrics captured</p>
-        </Panel>
-        <Panel className="p-4">
-          <p className="text-xs text-muted">Profile runs</p>
-          <p className="mt-3 text-xl font-semibold text-ink">{profileRunsQuery.data ? formatNumber(totalRuns) : '—'}</p>
-          <p className="mt-1 text-xs text-muted">{profileRunsQuery.data ? `Page ${runsPage} of ${Math.max(totalPages, 1)}` : 'loaded from backend'}</p>
-        </Panel>
-      </div>
-
-      {runMutationErrorInfo ? (
-        <Panel className="border-l-2 border-l-danger/50">
-          <SectionHeading
-            description="The backend rejected the profile run. The dataset's analysis state is unchanged."
-            eyebrow="Profile run failed"
-            title="The last profile run did not start"
-          />
-          <div className="mt-4 flex items-start gap-3 text-sm text-muted">
-            <CircleAlert aria-hidden="true" className="mt-0.5 text-danger" size={16} />
-            <div>
-              <p className="text-ink">{runMutationErrorInfo.message}</p>
-              <p className="mt-1 font-mono text-[11px] text-muted">Code: {runMutationErrorInfo.code}{runMutationErrorInfo.requestId ? ` · Request ID: ${runMutationErrorInfo.requestId}` : ''}</p>
-            </div>
-          </div>
-        </Panel>
-      ) : null}
+      <DatasetTabs datasetId={dataset.id} />
 
       {!currentVersion ? (
-        <Panel className="border-l-2 border-l-warning/50">
+        <Panel>
           <SectionHeading
             description="Profiling needs an immutable dataset version. Upload a file in the dataset explorer to create the first version."
             eyebrow="No version"
             title="Profiling is blocked"
-            action={<Badge dot tone="warning">No version</Badge>}
           />
           <div className="mt-6 flex items-center gap-3 text-sm text-muted">
             <TriangleAlert aria-hidden="true" className="text-warning" size={18} />
@@ -235,19 +244,13 @@ export function DatasetProfilingPage() {
         </Panel>
       ) : null}
 
-      {profileError ? (
-        <Panel className="border-l-2 border-l-line">
-          <SectionHeading
-            description="Profiling produces the JSONB metrics every detector and the quality score rely on."
-            eyebrow="Latest profile"
-            title="Profile"
-            action={<Badge dot tone="muted">Not profiled</Badge>}
-          />
-          <div className="mt-6 flex items-center gap-3 text-sm text-muted">
-            <ScrollText aria-hidden="true" size={18} />
-            <span>{profileError.message}</span>
-          </div>
-        </Panel>
+      {runMutationErrorInfo ? (
+        <ErrorState
+          message={runMutationErrorInfo.message}
+          onRetry={() => runProfileMutation.mutate()}
+          requestId={runMutationErrorInfo.requestId}
+          title="Profile run failed"
+        />
       ) : null}
 
       {latest ? (
@@ -255,38 +258,40 @@ export function DatasetProfilingPage() {
           <SectionHeading
             description="The latest profile is the authoritative source for the per-column metrics below. The frontend never recomputes these values."
             eyebrow="Latest profile"
-            title={latest.profile_id}
+            title="Profile run"
             action={
-              <div className="flex flex-wrap items-center justify-end gap-1">
-                <Badge dot tone={latest.sampled === 'full' ? 'success' : 'info'}>{latest.sampled === 'full' ? 'Full sample' : 'Bounded sample'}</Badge>
-                <Badge dot tone="muted">{formatTimestamp(latest.completed_at)}</Badge>
-              </div>
+              <span className="text-[11px] text-muted">
+                {latest.sampled === 'full' ? 'Full sample' : 'Bounded sample'} ·{' '}
+                {formatNumber(latest.duration_ms)} ms ·{' '}
+                <span className="font-mono">{latest.profile_id.slice(0, 8)}</span>
+              </span>
             }
           />
-          <div className="mt-4 grid gap-3 text-xs text-muted sm:grid-cols-3">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Started</p>
-              <p className="mt-1 font-mono text-ink">{formatTimestamp(latest.started_at)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Completed</p>
-              <p className="mt-1 font-mono text-ink">{formatTimestamp(latest.completed_at)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Duration</p>
-              <p className="mt-1 inline-flex items-center gap-1 font-mono text-ink"><Timer aria-hidden="true" size={12} />{formatNumber(latest.duration_ms)} ms</p>
-            </div>
-          </div>
+          <p className="mt-4 text-sm text-muted">
+            Started <span className="font-mono text-ink/80">{formatTimestamp(latest.started_at)}</span>,
+            completed <span className="font-mono text-ink/80">{formatTimestamp(latest.completed_at)}</span>,
+            across <span className="font-mono text-ink/80">{formatNumber(latest.sample_size)}</span> rows
+            and <span className="font-mono text-ink/80">{formatNumber(latest.columns.length)}</span>{' '}
+            columns.
+          </p>
         </Panel>
+      ) : null}
+
+      {profileError ? (
+        <ErrorState
+          message={profileError.message}
+          onRetry={() => void latestProfileQuery.refetch()}
+          requestId={profileError.requestId}
+          title={profileError.title}
+        />
       ) : null}
 
       {selectedRun ? (
         <section className="space-y-4">
           <SectionHeading
-            description="Select a column to inspect its full metrics: null counts and rates, distinct values, top values, and the typed numeric / temporal / string-length stats. The selection also feeds the run history."
+            description="Select a column to inspect its full metrics: null counts and rates, distinct values, top values, and the typed numeric / temporal / string-length stats."
             eyebrow="Column metrics"
             title={`Run ${selectedRun.profile_id.slice(0, 8)}`}
-            action={<Badge dot tone="accent">{formatNumber(selectedRun.columns.length)} columns</Badge>}
           />
           <ColumnProfileTable
             columns={selectedRun.columns}
@@ -299,19 +304,17 @@ export function DatasetProfilingPage() {
       ) : null}
 
       <Panel padded={false}>
-        <div className="border-b border-line px-5 py-5">
+        <div className="border-b border-line px-5 py-5 md:px-6">
           <SectionHeading
             description="Every profile run the backend has persisted. Inspect a run to load its per-column metrics above without re-fetching."
-            eyebrow="Profile runs"
-            title="Run history"
+            eyebrow="Run history"
+            title="Profile runs"
             action={
-              <div className="flex flex-wrap items-center justify-end gap-1">
-                <Badge dot tone="muted"><History aria-hidden="true" size={11} className="mr-1" />{formatNumber(totalRuns)} runs</Badge>
-              </div>
+              <span className="text-[11px] text-muted">{formatNumber(totalRuns)} runs</span>
             }
           />
         </div>
-        <div className="p-5">
+        <div className="p-5 md:p-6">
           {profileRunsQuery.isPending ? (
             <div className="space-y-4">
               <LoadingSkeleton lines={1} />
@@ -347,18 +350,14 @@ export function DatasetProfilingPage() {
       </Panel>
 
       {runProfileMutation.isSuccess && !runProfileMutation.isPending ? (
-        <Panel className="border-l-2 border-l-success/50">
-          <SectionHeading
-            description="A fresh profile is now visible above. The run history and latest-profile metrics will update on the next query refresh."
-            eyebrow="Profile run completed"
-            title="Run successful"
-            action={<Badge dot tone="success">Succeeded</Badge>}
-          />
-          <div className="mt-4 flex items-center gap-3 text-sm text-muted">
-            <Sparkles aria-hidden="true" className="text-success" size={16} />
-            <span>The new profile is in the run history; the column table now shows its metrics.</span>
-          </div>
-        </Panel>
+        <p className="text-xs text-muted">
+          The most recent profile run is visible above. The run history and latest-profile metrics refresh
+          automatically.
+          {' '}
+          <Link className="text-accent hover:underline" to={`/datasets/${dataset.id}/findings`}>
+            Run detection →
+          </Link>
+        </p>
       ) : null}
     </div>
   )
