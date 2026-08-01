@@ -1,17 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useParams } from 'react-router-dom'
-import {
-  ArrowLeft,
-  ArrowLeftRight,
-  CircleAlert,
-  GitCompare,
-  History,
-  Play,
-  Radar,
-  TableProperties,
-  TriangleAlert,
-} from 'lucide-react'
+import { useParams } from 'react-router-dom'
+import { AlertOctagon, Play } from 'lucide-react'
 
 import { getDataset, listDatasetVersions } from '../api/datasets'
 import {
@@ -20,12 +10,12 @@ import {
   listDatasetComparisons,
 } from '../api/analysis'
 import { ApiError } from '../api/client'
+import { DatasetTabs } from '../components/datasets/DatasetTabs'
 import { ComparisonsTable } from '../components/history/ComparisonsTable'
 import { DistributionDriftCard } from '../components/history/DistributionDriftCard'
 import { LineageChain } from '../components/history/LineageChain'
 import { SchemaDiffCard } from '../components/history/SchemaDiffCard'
 import { ScoreDriftCard } from '../components/history/ScoreDriftCard'
-import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { ErrorState } from '../components/ui/ErrorState'
 import { LoadingSkeleton } from '../components/ui/LoadingSkeleton'
@@ -79,6 +69,7 @@ export function DatasetHistoryPage() {
     queryKey: ['analysis', datasetId, 'comparisons', comparisonsPage],
     queryFn: () => listDatasetComparisons(datasetId ?? '', { page: comparisonsPage, pageSize: COMPARISON_PAGE_SIZE }),
     enabled,
+    retry: false,
   })
   const lineageQuery = useQuery({
     queryKey: ['analysis', datasetId, 'lineage'],
@@ -96,14 +87,12 @@ export function DatasetHistoryPage() {
     return map
   }, [versions])
 
-  // Default base/target to the two most-recent versions so the form is useful on first load.
   useEffect(() => {
     if (versions.length === 0) return
     if (!baseVersionId) setBaseVersionId(versions[Math.max(0, versions.length - 2)]?.id ?? null)
     if (!targetVersionId) setTargetVersionId(versions[versions.length - 1]?.id ?? null)
   }, [versions, baseVersionId, targetVersionId])
 
-  // Default the selected comparison to the first row on first load.
   useEffect(() => {
     if (selectedComparisonId) return
     if (comparisonsQuery.data?.items[0]) {
@@ -111,7 +100,6 @@ export function DatasetHistoryPage() {
     }
   }, [comparisonsQuery.data, selectedComparisonId])
 
-  // Reset base/target if the user navigated to a version that no longer exists.
   useEffect(() => {
     if (baseVersionId && !versionsById[baseVersionId]) {
       setBaseVersionId(versions[0]?.id ?? null)
@@ -122,10 +110,11 @@ export function DatasetHistoryPage() {
   }, [versionsById, baseVersionId, targetVersionId, versions])
 
   const createComparisonMutation = useMutation({
-    mutationFn: () => createDatasetComparison(datasetId ?? '', {
-      base_version_id: baseVersionId ?? '',
-      target_version_id: targetVersionId ?? '',
-    }),
+    mutationFn: () =>
+      createDatasetComparison(datasetId ?? '', {
+        base_version_id: baseVersionId ?? '',
+        target_version_id: targetVersionId ?? '',
+      }),
     onSuccess: async (comparison) => {
       setSelectedComparisonId(comparison.comparison_id)
       await Promise.all([
@@ -166,66 +155,86 @@ export function DatasetHistoryPage() {
     return (
       <div className="space-y-6">
         <LoadingSkeleton className="max-w-2xl" lines={3} />
-        <Panel><LoadingSkeleton lines={6} /></Panel>
+        <Panel>
+          <LoadingSkeleton lines={6} />
+        </Panel>
       </div>
     )
   }
   if (datasetQuery.isError || !datasetQuery.data) {
     const error = describeError(datasetQuery.error, 'Unable to load this dataset')
-    return <ErrorState message={error.message} onRetry={() => void datasetQuery.refetch()} requestId={error.requestId} title={error.title} />
+    return (
+      <ErrorState
+        message={error.message}
+        onRetry={() => void datasetQuery.refetch()}
+        requestId={error.requestId}
+        title={error.title}
+      />
+    )
   }
 
   const dataset = datasetQuery.data
   const currentVersion = dataset.current_version
-  const comparisonsError = comparisonsQuery.isError ? describeError(comparisonsQuery.error, 'Comparisons are not available yet') : null
-  const lineageError = lineageQuery.isError ? describeError(lineageQuery.error, 'Lineage is not available yet') : null
+  const comparisonsError = comparisonsQuery.isError
+    ? describeError(comparisonsQuery.error, 'Comparisons are not available yet')
+    : null
+  const lineageError = lineageQuery.isError
+    ? describeError(lineageQuery.error, 'Lineage is not available yet')
+    : null
   const lastRun = createComparisonMutation.data
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <PageHeader
         action={
-          <div className="flex items-center gap-2">
-            <Link to={`/datasets/${dataset.id}`}>
-              <Button size="sm" variant="ghost"><ArrowLeft aria-hidden="true" size={14} />Back to overview</Button>
-            </Link>
-            <Link to={`/datasets/${dataset.id}/profile`}>
-              <Button size="sm" variant="secondary"><TableProperties aria-hidden="true" size={14} />Profiling</Button>
-            </Link>
-            <Link to={`/datasets/${dataset.id}/findings`}>
-              <Button size="sm" variant="secondary"><Radar aria-hidden="true" size={14} />Findings</Button>
-            </Link>
-          </div>
+          <Button
+            disabled={!canCompare || createComparisonMutation.isPending}
+            onClick={() => {
+              createComparisonMutation.reset()
+              createComparisonMutation.mutate()
+            }}
+            variant="primary"
+          >
+            <Play aria-hidden="true" size={14} />
+            {createComparisonMutation.isPending
+              ? 'Comparing…'
+              : totalCount > 0
+                ? 'Re-run comparison'
+                : 'Run comparison'}
+          </Button>
         }
-        description={currentVersion
-          ? `Compare any two immutable versions of ${dataset.name}. The comparison is deterministic, schema-aware, and persisted as a history_comparisons row.`
-          : 'The dataset has no immutable version yet, so a comparison cannot be created.'}
-        eyebrow="Dataset history"
+        description={
+          currentVersion
+            ? `Compare any two immutable versions of ${dataset.name}. The comparison is deterministic, schema-aware, and persisted as a history_comparisons row.`
+            : 'The dataset has no immutable version yet, so a comparison cannot be created.'
+        }
         title={dataset.name}
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Panel className="p-4">
-          <p className="text-xs text-muted">Versions</p>
-          <p className="mt-3 text-xl font-semibold text-ink">{formatNumber(versions.length)}</p>
-          <p className="mt-1 text-xs text-muted">immutable source versions</p>
+      <DatasetTabs datasetId={dataset.id} />
+
+      {!currentVersion ? (
+        <Panel>
+          <SectionHeading
+            description="History needs at least two immutable dataset versions. Upload a file in the dataset explorer to create the first version."
+            eyebrow="No version"
+            title="History is blocked"
+          />
+          <div className="mt-6 flex items-center gap-3 text-sm text-muted">
+            <AlertOctagon aria-hidden="true" className="text-warning" size={18} />
+            <span>No immutable version is associated with this dataset yet.</span>
+          </div>
         </Panel>
-        <Panel className="p-4">
-          <p className="text-xs text-muted">Comparisons</p>
-          <p className="mt-3 text-xl font-semibold text-ink">{formatNumber(totalCount)}</p>
-          <p className="mt-1 text-xs text-muted">across every history batch</p>
-        </Panel>
-        <Panel className="p-4">
-          <p className="text-xs text-muted">Lineage edges</p>
-          <p className="mt-3 text-xl font-semibold text-ink">{lineageQuery.data ? formatNumber(lineageQuery.data.edges.length) : '—'}</p>
-          <p className="mt-1 text-xs text-muted">ordered by version_number</p>
-        </Panel>
-        <Panel className="p-4">
-          <p className="text-xs text-muted">Last comparison</p>
-          <p className="mt-3 text-xl font-semibold text-ink">{lastRun ? formatTimestamp(lastRun.created_at) : '—'}</p>
-          <p className="mt-1 text-xs text-muted">{lastRun ? `${formatNumber(lastRun.schema_diff.added.length + lastRun.schema_diff.removed.length + lastRun.schema_diff.type_changes.length)} schema change(s)` : 'run one above'}</p>
-        </Panel>
-      </div>
+      ) : null}
+
+      {mutationErrorInfo ? (
+        <ErrorState
+          message={mutationErrorInfo.message}
+          onRetry={() => createComparisonMutation.mutate()}
+          requestId={mutationErrorInfo.requestId}
+          title={mutationErrorInfo.code === 'invalid_comparison_request' ? 'Invalid comparison request' : 'Comparison failed'}
+        />
+      ) : null}
 
       <Panel>
         <SectionHeading
@@ -233,9 +242,9 @@ export function DatasetHistoryPage() {
           eyebrow="Run"
           title="Compare two versions"
           action={
-            <div className="flex flex-wrap items-center justify-end gap-1">
-              <Badge dot tone="muted">{formatNumber(versions.length)} versions</Badge>
-            </div>
+            <span className="text-[11px] text-muted">
+              {formatNumber(versions.length)} {versions.length === 1 ? 'version' : 'versions'}
+            </span>
           }
         />
 
@@ -250,14 +259,16 @@ export function DatasetHistoryPage() {
             >
               {versionChoices.length === 0 ? <option value="">No versions available</option> : null}
               {versionChoices.map((version) => (
-                <option key={`base-${version.id}`} value={version.id}>{summarizeVersion(version)}</option>
+                <option key={`base-${version.id}`} value={version.id}>
+                  {summarizeVersion(version)}
+                </option>
               ))}
             </select>
             <span className="text-[10px] text-muted">Older reference version</span>
           </label>
 
           <div className="flex items-center justify-center text-muted" aria-hidden="true">
-            <ArrowLeftRight size={18} />
+            <span className="font-mono text-lg">→</span>
           </div>
 
           <label className="flex flex-col gap-1 text-xs text-muted">
@@ -270,21 +281,15 @@ export function DatasetHistoryPage() {
             >
               {versionChoices.length === 0 ? <option value="">No versions available</option> : null}
               {versionChoices.map((version) => (
-                <option key={`target-${version.id}`} value={version.id}>{summarizeVersion(version)}</option>
+                <option key={`target-${version.id}`} value={version.id}>
+                  {summarizeVersion(version)}
+                </option>
               ))}
             </select>
             <span className="text-[10px] text-muted">Newer reference version</span>
           </label>
 
           <div className="flex flex-col items-stretch gap-2 sm:items-end">
-            <Button
-              disabled={!canCompare || createComparisonMutation.isPending}
-              onClick={() => { createComparisonMutation.reset(); createComparisonMutation.mutate() }}
-              variant="primary"
-            >
-              <Play aria-hidden="true" size={14} />
-              {createComparisonMutation.isPending ? 'Comparing…' : (totalCount > 0 ? 'Re-run comparison' : 'Run comparison')}
-            </Button>
             {canCompare ? null : (
               <p className="text-[10px] text-muted">Pick two distinct versions to compare.</p>
             )}
@@ -292,57 +297,23 @@ export function DatasetHistoryPage() {
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-muted">
-          <span>Base: <span className="font-mono text-ink/80">{summarizeVersion(baseVersion)}</span></span>
+          <span>
+            Base: <span className="font-mono text-ink/80">{summarizeVersion(baseVersion)}</span>
+          </span>
           <span aria-hidden="true">·</span>
-          <span>Target: <span className="font-mono text-ink/80">{summarizeVersion(targetVersion)}</span></span>
+          <span>
+            Target: <span className="font-mono text-ink/80">{summarizeVersion(targetVersion)}</span>
+          </span>
         </div>
       </Panel>
 
-      {mutationErrorInfo ? (
-        <Panel className="border-l-2 border-l-danger/50">
-          <SectionHeading
-            description="The backend rejected the comparison run. The dataset's history is unchanged."
-            eyebrow="Comparison failed"
-            title="The last comparison run did not start"
-          />
-          <div className="mt-4 flex items-start gap-3 text-sm text-muted">
-            <CircleAlert aria-hidden="true" className="mt-0.5 text-danger" size={16} />
-            <div>
-              <p className="text-ink">{mutationErrorInfo.message}</p>
-              <p className="mt-1 font-mono text-[11px] text-muted">Code: {mutationErrorInfo.code}{mutationErrorInfo.requestId ? ` · Request ID: ${mutationErrorInfo.requestId}` : ''}</p>
-            </div>
-          </div>
-        </Panel>
-      ) : null}
-
-      {!currentVersion ? (
-        <Panel className="border-l-2 border-l-warning/50">
-          <SectionHeading
-            description="History needs at least two immutable dataset versions. Upload a file in the dataset explorer to create the first version."
-            eyebrow="No version"
-            title="History is blocked"
-            action={<Badge dot tone="warning">No version</Badge>}
-          />
-          <div className="mt-6 flex items-center gap-3 text-sm text-muted">
-            <TriangleAlert aria-hidden="true" className="text-warning" size={18} />
-            <span>No immutable version is associated with this dataset yet.</span>
-          </div>
-        </Panel>
-      ) : null}
-
       {comparisonsError ? (
-        <Panel className="border-l-2 border-l-line">
-          <SectionHeading
-            description="Comparisons are the durable output of the Task 6 history service. The backend returns 404 until at least one version exists."
-            eyebrow="Comparisons"
-            title="Comparisons"
-            action={<Badge dot tone="muted">Unavailable</Badge>}
-          />
-          <div className="mt-6 flex items-center gap-3 text-sm text-muted">
-            <History aria-hidden="true" size={18} />
-            <span>{comparisonsError.message}</span>
-          </div>
-        </Panel>
+        <ErrorState
+          message={comparisonsError.message}
+          onRetry={() => void comparisonsQuery.refetch()}
+          requestId={comparisonsError.requestId}
+          title={comparisonsError.title}
+        />
       ) : null}
 
       {selectedComparison ? (
@@ -352,10 +323,9 @@ export function DatasetHistoryPage() {
             eyebrow="Selected comparison"
             title={selectedComparison.comparison_id}
             action={
-              <div className="flex flex-wrap items-center justify-end gap-1">
-                <Badge dot tone="muted">{selectedComparison.formula_version}</Badge>
-                <Badge dot tone="muted">{formatTimestamp(selectedComparison.created_at)}</Badge>
-              </div>
+              <span className="text-[11px] text-muted">
+                {selectedComparison.formula_version} · {formatTimestamp(selectedComparison.created_at)}
+              </span>
             }
           />
           <div className="grid gap-4 xl:grid-cols-2">
@@ -365,15 +335,14 @@ export function DatasetHistoryPage() {
           <DistributionDriftCard drift={selectedComparison.distribution_drift} />
         </section>
       ) : (
-        <Panel className="border-l-2 border-l-line">
+        <Panel>
           <SectionHeading
             description="The detail cards will render here once a comparison row is selected or a new run completes."
             eyebrow="Selected comparison"
             title="Pick a comparison"
-            action={<Badge dot tone="muted">No selection</Badge>}
+            action={<span className="text-[11px] text-muted">No selection</span>}
           />
           <div className="mt-6 flex items-center gap-3 text-sm text-muted">
-            <GitCompare aria-hidden="true" size={18} />
             <span>No comparison is currently selected. Run a comparison above or click a row in the table below.</span>
           </div>
         </Panel>
@@ -381,17 +350,17 @@ export function DatasetHistoryPage() {
 
       <section className="space-y-4">
         <SectionHeading
-          description="The backend derives the lineage edges by walking the version chain ordered by version_number. Edges are not persisted; the underlying version rows are already immutable."
+          description="The backend derives the lineage edges by walking the version chain ordered by version_number."
           eyebrow="Lineage"
           title="Version chain"
         />
         {lineageError ? (
-          <Panel className="border-l-2 border-l-line">
-            <div className="mt-2 flex items-center gap-3 text-sm text-muted">
-              <History aria-hidden="true" size={18} />
-              <span>{lineageError.message}</span>
-            </div>
-          </Panel>
+          <ErrorState
+            message={lineageError.message}
+            onRetry={() => void lineageQuery.refetch()}
+            requestId={lineageError.requestId}
+            title={lineageError.title}
+          />
         ) : null}
         <LineageChain lineage={lineageQuery.data ?? null} versionsById={versionsById} />
       </section>
@@ -408,19 +377,11 @@ export function DatasetHistoryPage() {
         versionsById={versionsById}
       />
 
-      {createComparisonMutation.isSuccess && !createComparisonMutation.isPending ? (
-        <Panel className="border-l-2 border-l-success/50">
-          <SectionHeading
-            description="A fresh comparison row is now visible above. The run history and selected comparison will update on the next query refresh."
-            eyebrow="Comparison completed"
-            title="Comparison succeeded"
-            action={<Badge dot tone="success">Succeeded</Badge>}
-          />
-          <div className="mt-4 flex items-center gap-3 text-sm text-muted">
-            <GitCompare aria-hidden="true" className="text-success" size={16} />
-            <span>The comparison {selectedComparisonId?.slice(0, 8) ?? lastRun?.comparison_id.slice(0, 8)} was persisted with formula {lastRun?.formula_version ?? 'task6-1.0'}.</span>
-          </div>
-        </Panel>
+      {createComparisonMutation.isSuccess && !createComparisonMutation.isPending && lastRun ? (
+        <p className="text-xs text-muted">
+          The most recent comparison {formatTimestamp(lastRun.created_at)} was persisted with formula{' '}
+          {lastRun.formula_version}.
+        </p>
       ) : null}
     </div>
   )
