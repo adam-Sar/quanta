@@ -6,6 +6,7 @@ import { DatasetFindingsPage } from './pages/DatasetFindingsPage'
 import { DatasetHistoryPage } from './pages/DatasetHistoryPage'
 import { DatasetOverviewPage } from './pages/DatasetOverviewPage'
 import { DatasetProfilingPage } from './pages/DatasetProfilingPage'
+import { DatasetRecommendationsPage } from './pages/DatasetRecommendationsPage'
 import { DatasetResourcePage } from './pages/DatasetResourcePage'
 import { DatasetsPage } from './pages/DatasetsPage'
 import { OverviewPage } from './pages/OverviewPage'
@@ -22,6 +23,7 @@ export function App() {
         <Route element={<DatasetFindingsPage />} path="/datasets/:datasetId/findings" />
         <Route element={<DatasetHistoryPage />} path="/datasets/:datasetId/history" />
         <Route element={<DatasetAIAnalysisPage />} path="/datasets/:datasetId/ai" />
+        <Route element={<DatasetRecommendationsPage />} path="/datasets/:datasetId/recommendations" />
         <Route element={<DatasetResourcePage />} path="/datasets/:datasetId/source" />
         <Route
           element={
