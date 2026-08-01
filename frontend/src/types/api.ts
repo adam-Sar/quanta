@@ -434,3 +434,41 @@ export interface ValidationListResponse {
   items: ValidationResponse[]
   pagination: Pagination
 }
+
+export type JobKind =
+  | 'profile'
+  | 'detect'
+  | 'score'
+  | 'history'
+  | 'recommendations'
+  | 'validations'
+
+export type JobStatus = 'pending' | 'running' | 'succeeded' | 'failed'
+
+export interface JobCreateRequest {
+  kind: JobKind
+  profile_id: string | null
+  title: string | null
+  parameters: Record<string, unknown>
+}
+
+export interface JobResponse {
+  job_id: string
+  dataset_id: string
+  profile_id: string | null
+  kind: JobKind
+  status: JobStatus
+  title: string
+  parameters: Record<string, unknown>
+  result: Record<string, unknown>
+  error: Record<string, unknown>
+  formula_version: string
+  created_at: string
+  started_at: string | null
+  completed_at: string | null
+}
+
+export interface JobListResponse {
+  items: JobResponse[]
+  pagination: Pagination
+}

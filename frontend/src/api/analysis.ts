@@ -9,6 +9,9 @@ import type {
   HistoryComparisonListResponse,
   HistoryComparisonRequest,
   HistoryComparisonResponse,
+  JobCreateRequest,
+  JobListResponse,
+  JobResponse,
   LineageResponse,
   QualityScoreResponse,
   RecommendationListResponse,
@@ -208,4 +211,34 @@ export function createDatasetValidation(
     `/datasets/${datasetId}/recommendations/${recommendationId}/validate`,
     { method: 'POST' },
   )
+}
+
+export interface ListDatasetJobsParams {
+  page?: number
+  pageSize?: number
+}
+
+export function listDatasetJobs(
+  datasetId: string,
+  { page = 1, pageSize = 50 }: ListDatasetJobsParams = {},
+): Promise<JobListResponse> {
+  const searchParams = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  })
+  return request<JobListResponse>(`/datasets/${datasetId}/jobs?${searchParams.toString()}`)
+}
+
+export function getDatasetJob(jobId: string): Promise<JobResponse> {
+  return request<JobResponse>(`/datasets/jobs/${jobId}`)
+}
+
+export function createDatasetJob(
+  datasetId: string,
+  payload: JobCreateRequest,
+): Promise<JobResponse> {
+  return request<JobResponse>(`/datasets/${datasetId}/jobs`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
 }
