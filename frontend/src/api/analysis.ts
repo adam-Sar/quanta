@@ -19,6 +19,7 @@ import type {
   ValidationListResponse,
   ValidationResponse,
 } from '../types/api'
+import { listDatasets } from './datasets'
 
 export function getDatasetProfile(datasetId: string): Promise<DatasetProfileResponse> {
   return request<DatasetProfileResponse>(`/datasets/${datasetId}/profile`)
@@ -241,4 +242,33 @@ export function createDatasetJob(
     method: 'POST',
     body: JSON.stringify(payload),
   })
+}
+
+/**
+ * Aggregated workspace Jobs view.
+ *
+ * The backend has no global jobs endpoint; the durable jobs are stored
+ * per-dataset. We list every dataset, then fan out to the per-dataset
+ * jobs endpoint and merge the results. Each job gets the source
+ * dataset_id attached for display.
+ */
+export interface GlobalJob extends JobResponse {
+  dataset_id: string
+}
+
+export async function listGlobalJobs(maxDatasets = 50): Promise<GlobalJob[]> {
+  const ds = await listDatasets({ page: 1, pageSize: maxDatasets })
+  const results = await Promise.all(
+    ds.items.map(async (dataset) => {
+      try {
+        const res = await listDatasetJobs(dataset.id, { page: 1, pageSize: 50 })
+        return res.items.map((job) => ({ ...job, dataset_id: dataset.id }))
+      } catch {
+        return [] as GlobalJob[]
+      }
+    }),
+  )
+  return results
+    .flat()
+    .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
 }

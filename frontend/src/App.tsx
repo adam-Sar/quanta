@@ -4,14 +4,16 @@ import { AppShell } from './components/layout/AppShell'
 import { DatasetAIAnalysisPage } from './pages/DatasetAIAnalysisPage'
 import { DatasetFindingsPage } from './pages/DatasetFindingsPage'
 import { DatasetHistoryPage } from './pages/DatasetHistoryPage'
+import { DatasetJobsPage } from './pages/DatasetJobsPage'
 import { DatasetOverviewPage } from './pages/DatasetOverviewPage'
 import { DatasetProfilingPage } from './pages/DatasetProfilingPage'
 import { DatasetRecommendationsPage } from './pages/DatasetRecommendationsPage'
 import { DatasetResourcePage } from './pages/DatasetResourcePage'
 import { DatasetValidationsPage } from './pages/DatasetValidationsPage'
 import { DatasetsPage } from './pages/DatasetsPage'
+import { JobsPage } from './pages/JobsPage'
 import { OverviewPage } from './pages/OverviewPage'
-import { PlaceholderPage } from './pages/PlaceholderPage'
+import { SettingsPage } from './pages/SettingsPage'
 
 export function App() {
   return (
@@ -25,28 +27,14 @@ export function App() {
         <Route element={<DatasetHistoryPage />} path="/datasets/:datasetId/history" />
         <Route element={<DatasetAIAnalysisPage />} path="/datasets/:datasetId/ai" />
         <Route element={<DatasetRecommendationsPage />} path="/datasets/:datasetId/recommendations" />
-        <Route element={<DatasetValidationsPage />} path="/datasets/:datasetId/recommendations/:recommendationId/validations" />
+        <Route
+          element={<DatasetValidationsPage />}
+          path="/datasets/:datasetId/recommendations/:recommendationId/validations"
+        />
+        <Route element={<DatasetJobsPage />} path="/datasets/:datasetId/jobs" />
         <Route element={<DatasetResourcePage />} path="/datasets/:datasetId/source" />
-        <Route
-          element={
-            <PlaceholderPage
-              description="Review durable analysis runs and their auditable outcomes."
-              task="The Jobs task"
-              title="Jobs"
-            />
-          }
-          path="/jobs"
-        />
-        <Route
-          element={
-            <PlaceholderPage
-              description="Runtime limits, API diagnostics, and future workspace controls."
-              task="A future operator settings task"
-              title="Settings"
-            />
-          }
-          path="/settings"
-        />
+        <Route element={<JobsPage />} path="/jobs" />
+        <Route element={<SettingsPage />} path="/settings" />
       </Route>
     </Routes>
   )
