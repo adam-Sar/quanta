@@ -404,3 +404,33 @@ export interface RecommendationListResponse {
   items: RecommendationResponse[]
   pagination: Pagination
 }
+
+export type ValidationStatus = 'valid' | 'warning' | 'invalid'
+
+export interface ValidationImpactResponse {
+  affected_rows: number | null
+  affected_columns: string[]
+  summary: string
+  unexpected_side_effects: string[]
+}
+
+export interface ValidationResponse {
+  validation_id: string
+  dataset_id: string
+  dataset_version_id: string
+  profile_id: string
+  recommendation_id: string
+  operation_kind: string
+  status: ValidationStatus
+  title: string
+  rationale: string
+  impact: ValidationImpactResponse
+  components: Record<string, unknown>
+  formula_version: string
+  created_at: string
+}
+
+export interface ValidationListResponse {
+  items: ValidationResponse[]
+  pagination: Pagination
+}

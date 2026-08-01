@@ -13,6 +13,8 @@ import type {
   QualityScoreResponse,
   RecommendationListResponse,
   RecommendationResponse,
+  ValidationListResponse,
+  ValidationResponse,
 } from '../types/api'
 
 export function getDatasetProfile(datasetId: string): Promise<DatasetProfileResponse> {
@@ -167,4 +169,43 @@ export function createDatasetRecommendations(datasetId: string): Promise<Recomme
   return request<RecommendationResponse[]>(`/datasets/${datasetId}/recommendations`, {
     method: 'POST',
   })
+}
+
+export interface ListDatasetValidationsParams {
+  page?: number
+  pageSize?: number
+}
+
+export function listDatasetValidations(
+  datasetId: string,
+  recommendationId: string,
+  { page = 1, pageSize = 50 }: ListDatasetValidationsParams = {},
+): Promise<ValidationListResponse> {
+  const searchParams = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  })
+  return request<ValidationListResponse>(
+    `/datasets/${datasetId}/recommendations/${recommendationId}/validations?${searchParams.toString()}`,
+  )
+}
+
+export function getDatasetValidation(
+  datasetId: string,
+  recommendationId: string,
+  validationId: string,
+): Promise<ValidationResponse> {
+  return request<ValidationResponse>(
+    `/datasets/${datasetId}/recommendations/${recommendationId}/validations/${validationId}`,
+  )
+}
+
+export function createDatasetValidation(
+  datasetId: string,
+  recommendationId: string,
+): Promise<ValidationResponse> {
+  return request<ValidationResponse>(
+    `/datasets/${datasetId}/recommendations/${recommendationId}/validate`,
+    { method: 'POST' },
+  )
 }
