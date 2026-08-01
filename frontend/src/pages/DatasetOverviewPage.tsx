@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Gauge, Radar, ScrollText, Sparkles, TableProperties } from 'lucide-react'
+import { ArrowLeft, Gauge, GitCompare, Radar, ScrollText, Sparkles, TableProperties } from 'lucide-react'
 
 import { getDataset } from '../api/datasets'
 import {
@@ -113,6 +113,9 @@ export function DatasetOverviewPage() {
             <Link to={`/datasets/${dataset.id}/findings`}>
               <Button size="sm" variant="secondary"><Radar aria-hidden="true" size={14} />Findings</Button>
             </Link>
+            <Link to={`/datasets/${dataset.id}/history`}>
+              <Button size="sm" variant="secondary"><GitCompare aria-hidden="true" size={14} />History</Button>
+            </Link>
           </div>
         }
         description={dataset.description ?? 'No description provided for this dataset.'}
@@ -193,7 +196,7 @@ export function DatasetOverviewPage() {
           items={findingsQuery.data?.items ?? []}
           total={findingsQuery.data?.pagination.total_items ?? 0}
         />
-        <LineageCard lineage={lineageQuery.data ?? { dataset_id: dataset.id, edges: [] }} />
+        <LineageCard datasetId={dataset.id} lineage={lineageQuery.data ?? { dataset_id: dataset.id, edges: [] }} />
       </section>
 
       {erroredResources.length > 0 ? (
