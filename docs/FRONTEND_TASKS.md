@@ -2,8 +2,8 @@
 
 ## Status
 
-- **Current task:** TASK 5 — Findings
-- **Overall progress:** 4 / 11
+- **Current task:** TASK 6 — Historical Analysis
+- **Overall progress:** 5 / 11
 - **Last updated:** 2026-08-01
 - **Status:** In progress
 
@@ -13,7 +13,7 @@
 - [x] TASK 2 — Dataset Explorer
 - [x] TASK 3 — Dataset Overview (committed but not verified with live data)
 - [x] TASK 4 — Profiling (committed; live data re-verification with PostgreSQL still outstanding)
-- [ ] TASK 5 — Findings
+- [x] TASK 5 — Findings (committed; live data re-verification with PostgreSQL still outstanding)
 - [ ] TASK 6 — Historical Analysis
 - [ ] TASK 7 — AI Analysis
 - [ ] TASK 8 — Recommendations
