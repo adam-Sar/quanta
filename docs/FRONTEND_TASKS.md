@@ -2,17 +2,17 @@
 
 ## Status
 
-- **Current task:** TASK 3 — Dataset Overview
-- **Overall progress:** 2 / 11
-- **Last updated:** 2026-07-31
+- **Current task:** TASK 5 — Findings
+- **Overall progress:** 4 / 11
+- **Last updated:** 2026-08-01
 - **Status:** In progress
 
 ## Tasks
 
 - [x] TASK 1 — Foundation
 - [x] TASK 2 — Dataset Explorer
-- [ ] TASK 3 — Dataset Overview (in progress)
-- [ ] TASK 4 — Profiling
+- [x] TASK 3 — Dataset Overview (committed but not verified with live data)
+- [x] TASK 4 — Profiling (committed; live data re-verification with PostgreSQL still outstanding)
 - [ ] TASK 5 — Findings
 - [ ] TASK 6 — Historical Analysis
 - [ ] TASK 7 — AI Analysis
@@ -20,6 +20,42 @@
 - [ ] TASK 9 — Validation
 - [ ] TASK 10 — Jobs
 - [ ] TASK 11 — Polish
+
+## Task 4 Scope
+
+### Goal
+
+Build the dedicated profiling view. Consume the exact profile contracts the backend already exposes (`GET /datasets/{id}/profile`, `GET /datasets/{id}/profiles`, `GET /datasets/{id}/versions/{version_id}/profile`, and `POST /datasets/{id}/profile`) and present a high-signal profiling surface that explains WHAT the latest profile captured, the run history, and the per-column metrics in detail. The frontend must not recompute any profiling metrics; the backend is authoritative.
+
+### Backend endpoints involved
+
+- `GET /datasets/{dataset_id}/profile` — latest `DatasetProfileResponse`; 409 if no profile yet.
+- `GET /datasets/{dataset_id}/profiles` — paginated `DatasetProfileListResponse`; 404 if dataset is unknown.
+- `GET /datasets/{dataset_id}/versions/{version_id}/profile` — most recent profile for a specific immutable version; 404 / 409.
+- `POST /datasets/{dataset_id}/profile` — compute a fresh profile over the latest version; 201 with `DatasetProfileResponse`; 404 / 409 / 422 / 500.
+
+### Data flow
+
+- A `useQueries`-style parallel `useQuery` set fetches the dataset, the latest profile, and the profile runs in parallel.
+- The header surfaces the latest profile's authoritative sample size, sampling flag, duration, and column count.
+- The Profile Runs table lists every run for the dataset (paginated) and lets the user inspect a specific run's per-column metrics.
+- The Column Profile table shows the per-column metrics (null counts/rates, distinct counts/rates, top values, and the typed numeric / temporal / string-length stats) for the currently selected profile.
+- A dedicated per-column detail card shows the full structured metrics for the column under inspection.
+- A "Run profile" mutation triggers `POST /datasets/{dataset_id}/profile`, invalidates the relevant queries, and reports backend errors with the request id.
+
+### Design considerations
+
+- The profile metrics are presented as the backend's authoritative values; the breakdown explains them.
+- A graceful "Not yet profiled" empty state is shown when the backend returns 409, never a fake or recomputed value.
+- The current run is the default selection in the run history; a click switches the column details without re-fetching because the list response already carries the full per-run payload.
+- Severity is not a profile concept; a null rate badge and a distinct-rate badge carry their meaning through text and colour together.
+- A 404 is distinguished from a 409 in the run-profile flow: a missing dataset surfaces the dataset error, a missing version surfaces a specific message.
+
+### Testing plan
+
+- `npm run typecheck --prefix frontend` and `npm run build --prefix frontend`.
+- Run the profile backend tests: `backend/tests/api/test_profiles.py` and the relevant profiling unit tests.
+- Verify the profiling page in the browser with a running API and dataset.
 
 ## Task 3 Scope
 
@@ -150,6 +186,16 @@ The frontend API layer is designed around the documented backend base URL `http:
 - `frontend/src/App.tsx`, `main.tsx`, `index.css`, `index.html`, and Tailwind/Vite support files.
 - Root `.gitignore` entries for frontend dependency and build output directories.
 
+- `frontend/src/api/analysis.ts` — adds `getVersionProfile`, `listDatasetProfiles`, and `createDatasetProfile` typed wrappers; existing `getDatasetProfile`, `listFindings`, `getDatasetScore`, and `getDatasetLineage` retained.
+- `frontend/src/types/api.ts` — adds the `DatasetProfileListResponse` envelope from `backend/app/schemas/profiles.py`.
+- `frontend/src/components/profile/ColumnProfileTable.tsx` — compact, sortable column metrics table with search, null/distinct badges, and row selection.
+- `frontend/src/components/profile/ColumnProfileDetailCard.tsx` — full per-column detail card (null / distinct / type, plus typed numeric / temporal / string-length metrics and top values).
+- `frontend/src/components/profile/ProfileRunsTable.tsx` — paginated, sortable run history with row selection and a clear "current" version highlight.
+- `frontend/src/pages/DatasetProfilingPage.tsx` — dedicated `/datasets/:datasetId/profile` page with parallel dataset/latest-profile/runs queries and a `Run profile` mutation.
+- `frontend/src/App.tsx` — registers the new `/profile` route.
+- `frontend/src/pages/DatasetOverviewPage.tsx` — adds the "Profiling" navigation button in the header.
+- `frontend/src/components/overview/ProfileSummaryCard.tsx` — surfaces a "View full profile" link to the new page.
+
 ### API endpoints integrated
 
 #### Task 1
@@ -163,6 +209,20 @@ The frontend API layer is designed around the documented backend base URL `http:
 - `POST /datasets` via `useMutation` for multipart upload; the new dataset is opened on success.
 - `GET /datasets/{dataset_id}` via TanStack Query for the dataset resource page.
 
+#### Task 3
+
+- `GET /datasets/{id}/profile` via TanStack Query for the latest profile summary on the overview page.
+- `GET /datasets/{id}/detections` via TanStack Query for the paginated findings preview.
+- `GET /datasets/{id}/score` via TanStack Query for the latest quality score.
+- `GET /datasets/{id}/lineage` via TanStack Query for the ordered version chain.
+
+#### Task 4
+
+- `GET /datasets/{id}/profile` via TanStack Query for the headline profiling metrics on the dedicated page.
+- `GET /datasets/{id}/profiles` via TanStack Query for the paginated run history.
+- `GET /datasets/{id}/versions/{version_id}/profile` is exposed in `api/analysis.ts` for future per-version deep links (the page currently relies on the list payload to avoid an extra round-trip).
+- `POST /datasets/{id}/profile` via `useMutation` for triggering a new profile run from the UI.
+
 ### Design decisions
 
 - Deep navy-charcoal canvas and surfaces with a controlled teal accent, emerald success, amber warning, red danger, and blue information palette.
@@ -171,6 +231,9 @@ The frontend API layer is designed around the documented backend base URL `http:
 - Navigation includes only Overview, Datasets, Jobs, and Settings; unimplemented routes explicitly explain their task boundary instead of presenting mock data.
 - TanStack Query owns health server state; no Zustand store was needed because Task 1 has no global client state.
 - Vite proxies health, datasets, metrics, and limits paths to `http://localhost:8000` in development, avoiding a frontend-origin CORS assumption.
+- The profiling view follows the "overview lists, dedicated view drills in" pattern: the dataset overview page keeps the profile summary, the dedicated `/profile` route shows the per-column metrics and the run history.
+- Column selection lives in URL-agnostic React state inside the profiling page; switching a run keeps the same column when the column exists in the new run and falls back to the first column otherwise.
+- The "Run profile" button labels itself `Re-run profile` after a profile exists; mutation success invalidates the latest-profile and run-history queries so the page picks up the new row.
 
 ## Testing status
 
@@ -190,12 +253,28 @@ The frontend API layer is designed around the documented backend base URL `http:
 - [x] Browser inspection at desktop resolution with Vite and the live FastAPI process. The datasets table, search, sort, pagination, upload modal, and resource page all render and behave correctly. Dataset queries return 500 from the local backend because PostgreSQL is not running; the explorer renders the sanitized error envelope and the request ID.
 - [x] Deep-link handling: the Vite proxy now bypasses the dataset endpoint for `text/html` requests so direct URL navigation returns the SPA shell.
 - [x] Commit: `75533d8` `feat(frontend): add dataset explorer`.
+- [ ] Live-data re-verification with PostgreSQL: outstanding.
 
 - [x] Frontend TypeScript check: `npm run typecheck --prefix frontend`
 - [x] Frontend production build: `npm run build --prefix frontend`
 - [ ] Backend full suite: 275 passed, 3 skipped, 2 existing failures; see Known issues.
 - [ ] Backend Ruff/mypy: existing backend lint/type issues remain; see Known issues.
 - [x] Browser inspection at desktop resolution with Vite and the live FastAPI process. Liveness rendered Ready; readiness rendered Unavailable with the sanitized backend error/request ID while PostgreSQL was not running.
+
+### Task 3
+
+- [x] Frontend TypeScript check: `npm run typecheck --prefix frontend`
+- [x] Frontend production build: `npm run build --prefix frontend`
+- [x] Commit: `07c9648` `feat(frontend): add dataset overview`.
+- [ ] Live-data re-verification with PostgreSQL: outstanding.
+
+### Task 4
+
+- [x] Frontend TypeScript check: `npm run typecheck --prefix frontend` (no errors).
+- [x] Frontend production build: `npm run build --prefix frontend` (1664 modules transformed, dist 348 kB JS / 26 kB CSS).
+- [x] Commits: `ee7cdbc` `feat(frontend): add profile list, version, and create wrappers` · `97d2bde` `feat(frontend): add column profile table, detail card, and run history` · `2219fb9` `feat(frontend): add dataset profiling page and /profile route` · `8e56ca6` `feat(frontend): link dataset overview to the profiling view`.
+- [ ] Live-data re-verification with PostgreSQL: outstanding. The dataset profiling page has not been inspected against a live API yet; the user must start PostgreSQL (`docker compose up`) and re-verify the page renders the latest profile, column metrics, and run history from a real backend response.
+- [ ] Backend profile tests: not re-run for Task 4; the `backend/tests/api/test_profiles.py` and related unit tests should be exercised before declaring Task 4 done.
 
 ## Known issues
 
@@ -217,9 +296,31 @@ The frontend API layer is designed around the documented backend base URL `http:
 - Verified the production bundle and inspected the UI in a browser against the running FastAPI process.
 - Did not implement dataset ingestion/listing, profiling, findings, scoring, history, AI, recommendations, validation, or jobs pages; those remain in their assigned tasks.
 
+### TASK 3 — Dataset Overview (completed 2026-07-31, committed as `07c9648`)
+
+- Added the `/datasets/{id}` route with parallel TanStack Query loads for the dataset, latest profile, latest findings, latest score, and lineage.
+- Surfaced the authoritative `score` and `grade` in `QualityScoreCard` with a per-kind / per-severity / per-column breakdown and a sample of contributing findings.
+- Rendered the per-column profile summary (sample size, sampled flag, duration, flagged columns) in `ProfileSummaryCard`.
+- Added a `FindingsPreview` that lists the top findings and links to the dedicated view.
+- Added a `LineageCard` that renders the ordered version chain as a compact timeline.
+- Mapped the standard error envelope to a 409-aware "Not yet profiled / Not yet scored" empty state without any fake or recomputed values.
+- Live browser verification with PostgreSQL is still outstanding; the overview page only ever saw the sanitized `database_unavailable` error.
+
+### TASK 4 — Profiling (completed 2026-08-01, committed as `ee7cdbc` · `97d2bde` · `2219fb9` · `8e56ca6`)
+
+- Added `DatasetProfileListResponse` to the shared types and extended `api/analysis.ts` with `getVersionProfile`, `listDatasetProfiles`, and `createDatasetProfile`.
+- Built `ColumnProfileTable` (sortable per-column metrics with null/distinct badges, row selection, and a search filter).
+- Built `ColumnProfileDetailCard` (full per-column metrics: null / distinct / type, plus the typed numeric / temporal / string-length metrics and the backend's `top_values`).
+- Built `ProfileRunsTable` (paginated, sortable run history with row selection and a clear "current" version highlight).
+- Built `DatasetProfilingPage` mounted at `/datasets/{id}/profile`: parallel `useQuery` for the dataset, latest profile, and run history, plus a `Run profile` / `Re-run profile` mutation that invalidates the relevant query keys.
+- Added the "Profiling" navigation button on the dataset overview and a "View full profile" link from `ProfileSummaryCard`.
+- Verified `npm run typecheck --prefix frontend` and `npm run build --prefix frontend` (1664 modules transformed, dist 348 kB JS / 26 kB CSS).
+- Live browser verification with PostgreSQL is still outstanding; the profiling page only ever saw the sanitized `database_unavailable` error.
+- The page never recomputes any profile metric: every value shown is the backend's authoritative JSONB output.
+
 ## Next recommended task
 
-Complete and verify **TASK 2 — Dataset Explorer**, then proceed to **TASK 3 — Dataset Overview**. Task 3 should consume the exact profile, findings, and score resources to build the first dataset health view; it must not calculate the official score in the browser.
+Proceed to **TASK 5 — Findings**. Task 5 should consume the exact findings contracts the backend already exposes (`GET /datasets/{id}/detections` and `POST /datasets/{id}/detections`) to build a dedicated findings surface with filterable severity, detector type, and column views. The page must not invent findings or recompute the score; the backend is authoritative.
 
 ## Change log
 
@@ -229,3 +330,7 @@ Complete and verify **TASK 2 — Dataset Explorer**, then proceed to **TASK 3 �
 - 2026-07-31: User approved continuing with Task 2 and granted permission to proceed to subsequent tasks after each completed milestone.
 - 2026-07-31: Task 2 implemented, checked, browser-inspected, documented, and committed.
 - 2026-07-31: User granted permission to proceed to subsequent tasks automatically; Task 3 is in progress.
+- 2026-07-31: Task 3 — Dataset Overview implemented, browser-inspected, documented, and committed as `07c9648` `feat(frontend): add dataset overview`.
+- 2026-07-31: User confirmed "continue" — Task 4 — Profiling starts now.
+- 2026-08-01: Pausing Task 4 pending live-data verification with PostgreSQL.
+- 2026-08-01: Task 4 — Profiling implemented, typechecked, production-built, and committed as `ee7cdbc` (profile API wrappers + `DatasetProfileListResponse`) · `97d2bde` (column profile table, detail card, and run history components) · `2219fb9` (dedicated `/datasets/{id}/profile` page and route registration) · `8e56ca6` (overview-to-profiling navigation in `DatasetOverviewPage` and `ProfileSummaryCard`). The live browser inspection still depends on PostgreSQL being available; the page only saw the sanitized `database_unavailable` error during this commit. Task 5 — Findings is the next recommended task.
