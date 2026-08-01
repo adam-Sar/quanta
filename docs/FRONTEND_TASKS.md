@@ -2,8 +2,8 @@
 
 ## Status
 
-- **Current task:** TASK 7 — AI Analysis
-- **Overall progress:** 6 / 11
+- **Current task:** TASK 8 — Recommendations
+- **Overall progress:** 7 / 11
 - **Last updated:** 2026-08-01
 - **Status:** In progress
 
@@ -15,7 +15,7 @@
 - [x] TASK 4 — Profiling (committed; live data re-verification with PostgreSQL still outstanding)
 - [x] TASK 5 — Findings (committed; live data re-verification with PostgreSQL still outstanding)
 - [x] TASK 6 — Historical Analysis (committed; live data re-verification with PostgreSQL still outstanding)
-- [ ] TASK 7 — AI Analysis
+- [x] TASK 7 — AI Analysis (committed; live data re-verification with PostgreSQL still outstanding)
 - [ ] TASK 8 — Recommendations
 - [ ] TASK 9 — Validation
 - [ ] TASK 10 — Jobs
