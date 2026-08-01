@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link, NavLink, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 
 import { getDataset } from '../api/datasets'
@@ -10,6 +10,7 @@ import {
   listFindings,
 } from '../api/analysis'
 import { ApiError } from '../api/client'
+import { DatasetTabs } from '../components/datasets/DatasetTabs'
 import { FindingsPreview } from '../components/overview/FindingsPreview'
 import { LineageCard } from '../components/overview/LineageCard'
 import { ProfileSummaryCard } from '../components/overview/ProfileSummaryCard'
@@ -20,42 +21,6 @@ import { LoadingSkeleton } from '../components/ui/LoadingSkeleton'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Panel, SectionHeading } from '../components/ui/Panel'
 import { formatTimestamp } from '../lib/utils'
-
-const DATASET_TABS = [
-  { label: 'Overview', to: '' },
-  { label: 'Profile', to: 'profile' },
-  { label: 'Findings', to: 'findings' },
-  { label: 'History', to: 'history' },
-  { label: 'AI', to: 'ai' },
-  { label: 'Recommendations', to: 'recommendations' },
-  { label: 'Jobs', to: 'jobs' },
-] as const
-
-function DatasetTabs({ datasetId }: { datasetId: string }) {
-  return (
-    <nav
-      aria-label="Dataset sections"
-      className="flex flex-wrap items-center gap-x-1 gap-y-1 border-b border-line"
-    >
-      {DATASET_TABS.map(({ label, to }) => (
-        <NavLink
-          className={({ isActive }) =>
-            `relative -mb-px border-b-2 px-3 py-2.5 text-sm transition-colors ${
-              isActive
-                ? 'border-accent text-ink'
-                : 'border-transparent text-muted hover:text-ink'
-            }`
-          }
-          end={to === ''}
-          key={to || 'overview'}
-          to={`/datasets/${datasetId}/${to}`}
-        >
-          {label}
-        </NavLink>
-      ))}
-    </nav>
-  )
-}
 
 function describeError(error: unknown, fallback: string) {
   if (error instanceof ApiError) {
