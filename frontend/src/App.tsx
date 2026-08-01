@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 
 import { AppShell } from './components/layout/AppShell'
 import { DatasetFindingsPage } from './pages/DatasetFindingsPage'
+import { DatasetHistoryPage } from './pages/DatasetHistoryPage'
 import { DatasetOverviewPage } from './pages/DatasetOverviewPage'
 import { DatasetProfilingPage } from './pages/DatasetProfilingPage'
 import { DatasetResourcePage } from './pages/DatasetResourcePage'
@@ -18,6 +19,7 @@ export function App() {
         <Route element={<DatasetOverviewPage />} path="/datasets/:datasetId" />
         <Route element={<DatasetProfilingPage />} path="/datasets/:datasetId/profile" />
         <Route element={<DatasetFindingsPage />} path="/datasets/:datasetId/findings" />
+        <Route element={<DatasetHistoryPage />} path="/datasets/:datasetId/history" />
         <Route element={<DatasetResourcePage />} path="/datasets/:datasetId/source" />
         <Route
           element={
