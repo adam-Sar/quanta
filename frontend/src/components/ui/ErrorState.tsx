@@ -1,4 +1,4 @@
-import { AlertTriangle, RefreshCw } from 'lucide-react'
+import { AlertOctagon, RefreshCw } from 'lucide-react'
 
 import { Button } from './Button'
 import { cn } from '../../lib/utils'
@@ -19,19 +19,25 @@ export function ErrorState({
   className,
 }: ErrorStateProps) {
   return (
-    <div className={cn('rounded-md border border-danger/25 bg-danger/5 px-5 py-6', className)} role="alert">
+    <div
+      className={cn(
+        'rounded-md border border-danger/30 bg-rose-50/60 px-5 py-4',
+        className,
+      )}
+      role="alert"
+    >
       <div className="flex gap-3">
         <span className="mt-0.5 text-danger">
-          <AlertTriangle aria-hidden="true" size={18} strokeWidth={1.8} />
+          <AlertOctagon aria-hidden="true" size={18} strokeWidth={1.8} />
         </span>
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-ink">{title}</h3>
-          <p className="mt-1 text-sm leading-6 text-muted">{message}</p>
+          <p className="mt-1 text-sm leading-6 text-ink-soft">{message}</p>
           {requestId ? (
-            <p className="mt-3 font-mono text-[11px] text-muted">Request ID: {requestId}</p>
+            <p className="mt-2 font-mono text-[11px] text-muted">Request ID: {requestId}</p>
           ) : null}
           {onRetry ? (
-            <Button className="mt-4" onClick={onRetry} size="sm" variant="secondary">
+            <Button className="mt-3" onClick={onRetry} size="sm" variant="secondary">
               <RefreshCw aria-hidden="true" size={14} />
               Try again
             </Button>
