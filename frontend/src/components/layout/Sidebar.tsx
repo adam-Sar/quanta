@@ -15,21 +15,20 @@ interface SidebarProps {
 }
 
 function QuantaMark() {
+  // 4x3 dot grid in sky blue, matching the Metabase brand mark
   return (
     <span
       aria-hidden="true"
-      className="relative flex h-7 w-7 items-center justify-center rounded-md border border-line bg-elevated"
+      className="grid h-8 w-8 shrink-0 grid-cols-4 grid-rows-3 gap-[2px] place-items-center"
     >
-      <span className="absolute h-3.5 w-1.5 -translate-x-1 rounded-sm bg-accent" />
-      <span className="absolute h-5 w-1.5 translate-x-1 rounded-sm bg-accent/55" />
+      {Array.from({ length: 12 }, (_, i) => (
+        <span
+          key={i}
+          className="h-1 w-1 rounded-full bg-[rgb(var(--color-accent))]"
+        />
+      ))}
     </span>
   )
-}
-
-function StatusDot({ tone }: { tone: 'success' | 'warning' | 'muted' }) {
-  const colorClass =
-    tone === 'success' ? 'bg-success' : tone === 'warning' ? 'bg-warning' : 'bg-muted'
-  return <span aria-hidden="true" className={`inline-block h-1.5 w-1.5 rounded-full ${colorClass}`} />
 }
 
 export function Sidebar({ items, isOpen, serviceState, onNavigate }: SidebarProps) {
@@ -43,51 +42,44 @@ export function Sidebar({ items, isOpen, serviceState, onNavigate }: SidebarProp
       {isOpen ? (
         <button
           aria-label="Close navigation"
-          className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-30 bg-slate-900/30 lg:hidden"
           onClick={onNavigate}
           type="button"
         />
       ) : null}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-40 flex w-[240px] flex-col border-r border-line bg-surface transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-40 flex w-[232px] flex-col border-r border-line bg-surface transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0',
           isOpen ? 'translate-x-0' : '-translate-x-full',
         )}
       >
-        <div className="flex h-14 items-center gap-3 border-b border-line px-5">
+        <div className="flex h-14 items-center gap-2.5 border-b border-line px-5">
           <QuantaMark />
-          <p className="text-sm font-semibold tracking-[0.06em] text-ink">Quanta</p>
+          <p className="text-[15px] font-semibold tracking-tight text-ink">Quanta</p>
         </div>
 
         <nav aria-label="Primary navigation" className="flex-1 px-3 py-4">
-          <ul className="space-y-1">
+          <ul className="space-y-0.5">
             {items.map(({ label, to, icon: Icon }) => (
               <li key={to}>
-                <NavLink
-                  className={({ isActive }) =>
-                    cn(
-                      'group flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
-                      isActive
-                        ? 'bg-accent/10 text-ink'
-                        : 'text-muted hover:bg-elevated hover:text-ink',
-                    )
-                  }
-                  end={to === '/'}
-                  onClick={onNavigate}
-                  to={to}
-                >
+                <NavLink to={to} end={to === ''} onClick={onNavigate}>
                   {({ isActive }) => (
-                    <>
-                      <span
+                    <span
+                      className={cn(
+                        'group flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
+                        isActive
+                          ? 'bg-accent-tint text-accent font-medium'
+                          : 'text-ink-soft hover:bg-canvas hover:text-ink',
+                      )}
+                    >
+                      <Icon
                         aria-hidden="true"
-                        className={cn(
-                          'h-1 w-1 shrink-0 rounded-full transition-colors',
-                          isActive ? 'bg-accent' : 'bg-transparent',
-                        )}
+                        className="shrink-0"
+                        size={16}
+                        strokeWidth={isActive ? 2 : 1.6}
                       />
-                      <Icon aria-hidden="true" className="shrink-0" size={16} strokeWidth={1.8} />
-                      <span className="font-medium">{label}</span>
-                    </>
+                      <span>{label}</span>
+                    </span>
                   )}
                 </NavLink>
               </li>
@@ -95,9 +87,17 @@ export function Sidebar({ items, isOpen, serviceState, onNavigate }: SidebarProp
           </ul>
         </nav>
 
-        <div className="flex h-12 items-center gap-2 border-t border-line px-5">
-          <StatusDot tone={serviceTone} />
-          <span className="text-xs text-muted">{serviceLabel}</span>
+        <div className="flex h-12 items-center gap-2 border-t border-line px-5 text-xs text-muted">
+          <span
+            aria-hidden="true"
+            className={cn(
+              'h-1.5 w-1.5 rounded-full',
+              serviceTone === 'success' && 'bg-success',
+              serviceTone === 'warning' && 'bg-warning',
+              serviceTone === 'muted' && 'bg-muted',
+            )}
+          />
+          <span>{serviceLabel}</span>
         </div>
       </aside>
     </>

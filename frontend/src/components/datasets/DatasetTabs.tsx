@@ -26,8 +26,8 @@ export function DatasetTabs({ datasetId }: { datasetId: string }) {
           className={({ isActive }) =>
             `relative -mb-px border-b-2 px-3 py-2.5 text-sm transition-colors ${
               isActive
-                ? 'border-accent text-ink'
-                : 'border-transparent text-muted hover:text-ink'
+                ? 'border-accent text-ink font-medium'
+                : 'border-transparent text-ink-soft hover:text-ink'
             }`
           }
           end={to === ''}

@@ -15,12 +15,12 @@ export function PageHeader({ eyebrow, title, description, action, className }: P
     <header className={cn('flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between', className)}>
       <div className="max-w-3xl">
         {eyebrow ? (
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
-            {eyebrow}
-          </p>
+          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">{eyebrow}</p>
         ) : null}
-        <h1 className="text-2xl font-semibold tracking-tight text-ink sm:text-[28px]">{title}</h1>
-        {description ? <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">{description}</p> : null}
+        <h1 className="text-2xl font-semibold tracking-tight text-ink sm:text-[28px] sm:leading-[34px]">{title}</h1>
+        {description ? (
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-soft">{description}</p>
+        ) : null}
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
     </header>
