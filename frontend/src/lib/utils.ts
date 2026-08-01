@@ -2,9 +2,15 @@ export function cn(...classes: Array<string | false | null | undefined>): string
   return classes.filter(Boolean).join(' ')
 }
 
-export function formatNumber(value: number | null | undefined): string {
+export function formatNumber(value: number | null | undefined, fractionDigits?: number): string {
   if (value === null || value === undefined) return '—'
-  return new Intl.NumberFormat('en-US').format(value)
+  if (fractionDigits === undefined) {
+    return new Intl.NumberFormat('en-US').format(value)
+  }
+  return new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: fractionDigits,
+    minimumFractionDigits: fractionDigits,
+  }).format(value)
 }
 
 export function formatBytes(value: number | null | undefined): string {

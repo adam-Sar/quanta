@@ -243,3 +243,81 @@ export interface LineageResponse {
   dataset_id: string
   edges: LineageEdgeResponse[]
 }
+
+export type SchemaChangeType = 'added' | 'removed' | 'type_changed'
+
+export interface ColumnDiffResponse {
+  name: string
+  change: SchemaChangeType
+  base_physical_type: string | null
+  target_physical_type: string | null
+  base_logical_type: string | null
+  target_logical_type: string | null
+}
+
+export interface SchemaDiffResponse {
+  added: string[]
+  removed: string[]
+  type_changes: ColumnDiffResponse[]
+}
+
+export type NumericDriftMetric = 'mean' | 'median' | 'std' | 'min' | 'max'
+
+export interface NumericDriftResponse {
+  column: string
+  metric: NumericDriftMetric
+  base_value: number | null
+  target_value: number | null
+  absolute_change: number | null
+  relative_change: number | null
+}
+
+export interface CategoricalDriftResponse {
+  column: string
+  metric: 'psi'
+  psi: number
+  base_top_values: Array<Record<string, unknown>>
+  target_top_values: Array<Record<string, unknown>>
+}
+
+export interface DistributionDriftResponse {
+  numeric: NumericDriftResponse[]
+  categorical: CategoricalDriftResponse[]
+}
+
+export interface ScoreDriftResponse {
+  base_score: number | null
+  target_score: number | null
+  delta: number | null
+  absolute_delta: number | null
+  base_grade: string | null
+  target_grade: string | null
+  grade_changed: boolean
+}
+
+export interface HistoryComparisonRequest {
+  base_version_id: string
+  target_version_id: string
+}
+
+export interface HistoryComparisonResponse {
+  comparison_id: string
+  dataset_id: string
+  base_version_id: string
+  target_version_id: string
+  formula_version: string
+  schema_diff: SchemaDiffResponse
+  distribution_drift: DistributionDriftResponse
+  score_drift: ScoreDriftResponse
+  created_at: string
+}
+
+export interface HistoryComparisonListResponse {
+  items: HistoryComparisonResponse[]
+  pagination: Pagination
+}
+
+export interface DatasetVersionListResponse {
+  items: DatasetVersionResponse[]
+  pagination: Pagination
+}

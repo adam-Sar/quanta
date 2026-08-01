@@ -1,5 +1,9 @@
 import { request } from './client'
-import type { DatasetListResponse, DatasetResponse } from '../types/api'
+import type {
+  DatasetListResponse,
+  DatasetResponse,
+  DatasetVersionListResponse,
+} from '../types/api'
 
 const DEFAULT_PAGE_SIZE = 50
 
@@ -25,6 +29,17 @@ export interface CreateDatasetInput {
 
 export function getDataset(datasetId: string): Promise<DatasetResponse> {
   return request<DatasetResponse>(`/datasets/${datasetId}`)
+}
+
+export function listDatasetVersions(
+  datasetId: string,
+  { page = 1, pageSize = DEFAULT_PAGE_SIZE }: ListDatasetsParams = {},
+): Promise<DatasetVersionListResponse> {
+  const searchParams = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  })
+  return request<DatasetVersionListResponse>(`/datasets/${datasetId}/versions?${searchParams.toString()}`)
 }
 
 export function createDataset({ file, name, description }: CreateDatasetInput): Promise<DatasetResponse> {

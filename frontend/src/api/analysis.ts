@@ -4,6 +4,9 @@ import type {
   DatasetProfileResponse,
   DetectionRunResponse,
   FindingListResponse,
+  HistoryComparisonListResponse,
+  HistoryComparisonRequest,
+  HistoryComparisonResponse,
   LineageResponse,
   QualityScoreResponse,
 } from '../types/api'
@@ -69,4 +72,37 @@ export function getDatasetScore(datasetId: string): Promise<QualityScoreResponse
 
 export function getDatasetLineage(datasetId: string): Promise<LineageResponse> {
   return request<LineageResponse>(`/datasets/${datasetId}/lineage`)
+}
+
+export interface ListDatasetComparisonsParams {
+  page?: number
+  pageSize?: number
+}
+
+export function listDatasetComparisons(
+  datasetId: string,
+  { page = 1, pageSize = 50 }: ListDatasetComparisonsParams = {},
+): Promise<HistoryComparisonListResponse> {
+  const searchParams = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  })
+  return request<HistoryComparisonListResponse>(`/datasets/${datasetId}/comparisons?${searchParams.toString()}`)
+}
+
+export function getDatasetComparison(
+  datasetId: string,
+  comparisonId: string,
+): Promise<HistoryComparisonResponse> {
+  return request<HistoryComparisonResponse>(`/datasets/${datasetId}/comparisons/${comparisonId}`)
+}
+
+export function createDatasetComparison(
+  datasetId: string,
+  payload: HistoryComparisonRequest,
+): Promise<HistoryComparisonResponse> {
+  return request<HistoryComparisonResponse>(`/datasets/${datasetId}/comparisons`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
 }
