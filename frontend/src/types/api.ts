@@ -355,3 +355,52 @@ export interface AIInterpretationListResponse {
   items: AIInterpretationResponse[]
   pagination: Pagination
 }
+
+export type RecommendationKind =
+  | 'data_quality_fix'
+  | 'duplicate_removal'
+  | 'outlier_treatment'
+  | 'schema_normalization'
+  | 'cardinality_reduction'
+  | 'missingness_treatment'
+  | 'pipeline_review'
+
+export type OperationKind =
+  | 'impute_missing'
+  | 'drop_column'
+  | 'drop_duplicates'
+  | 'cap_outliers'
+  | 'cast_type'
+  | 'group_rare_categorical'
+  | 'review'
+
+export type RecommendationSeverity = 'info' | 'low' | 'medium' | 'high' | 'critical'
+
+export interface RecommendationOperationResponse {
+  kind: OperationKind
+  params: Record<string, unknown>
+  preview_only: boolean
+}
+
+export interface RecommendationResponse {
+  recommendation_id: string
+  dataset_id: string
+  profile_id: string
+  kind: RecommendationKind
+  severity: RecommendationSeverity
+  title: string
+  rationale: string
+  affected_columns: string[]
+  supporting_finding_ids: string[]
+  confidence: number
+  priority: number
+  operation: RecommendationOperationResponse | null
+  formula_version: string
+  components: Record<string, unknown>
+  created_at: string
+}
+
+export interface RecommendationListResponse {
+  items: RecommendationResponse[]
+  pagination: Pagination
+}

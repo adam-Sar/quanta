@@ -11,6 +11,8 @@ import type {
   HistoryComparisonResponse,
   LineageResponse,
   QualityScoreResponse,
+  RecommendationListResponse,
+  RecommendationResponse,
 } from '../types/api'
 
 export function getDatasetProfile(datasetId: string): Promise<DatasetProfileResponse> {
@@ -134,6 +136,35 @@ export function getDatasetInterpretation(
 
 export function createDatasetInterpretation(datasetId: string): Promise<AIInterpretationResponse> {
   return request<AIInterpretationResponse>(`/datasets/${datasetId}/interpretations`, {
+    method: 'POST',
+  })
+}
+
+export interface ListDatasetRecommendationsParams {
+  page?: number
+  pageSize?: number
+}
+
+export function listDatasetRecommendations(
+  datasetId: string,
+  { page = 1, pageSize = 50 }: ListDatasetRecommendationsParams = {},
+): Promise<RecommendationListResponse> {
+  const searchParams = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  })
+  return request<RecommendationListResponse>(`/datasets/${datasetId}/recommendations?${searchParams.toString()}`)
+}
+
+export function getDatasetRecommendation(
+  datasetId: string,
+  recommendationId: string,
+): Promise<RecommendationResponse> {
+  return request<RecommendationResponse>(`/datasets/${datasetId}/recommendations/${recommendationId}`)
+}
+
+export function createDatasetRecommendations(datasetId: string): Promise<RecommendationResponse[]> {
+  return request<RecommendationResponse[]>(`/datasets/${datasetId}/recommendations`, {
     method: 'POST',
   })
 }
