@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Gauge, ScrollText, Sparkles } from 'lucide-react'
+import { ArrowLeft, Gauge, ScrollText, Sparkles, TableProperties } from 'lucide-react'
 
 import { getDataset } from '../api/datasets'
 import {
@@ -103,9 +103,14 @@ export function DatasetOverviewPage() {
     <div className="space-y-8">
       <PageHeader
         action={
-          <Link to="/datasets">
-            <Button size="sm" variant="ghost"><ArrowLeft aria-hidden="true" size={14} />Back to datasets</Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link to="/datasets">
+              <Button size="sm" variant="ghost"><ArrowLeft aria-hidden="true" size={14} />Back to datasets</Button>
+            </Link>
+            <Link to={`/datasets/${dataset.id}/profile`}>
+              <Button size="sm" variant="secondary"><TableProperties aria-hidden="true" size={14} />Profiling</Button>
+            </Link>
+          </div>
         }
         description={dataset.description ?? 'No description provided for this dataset.'}
         eyebrow="Dataset overview"
@@ -162,7 +167,7 @@ export function DatasetOverviewPage() {
         )}
 
         {profileQuery.data ? (
-          <ProfileSummaryCard profile={profileQuery.data} />
+          <ProfileSummaryCard datasetId={dataset.id} profile={profileQuery.data} />
         ) : (
           <Panel className="border-l-2 border-l-line">
             <SectionHeading

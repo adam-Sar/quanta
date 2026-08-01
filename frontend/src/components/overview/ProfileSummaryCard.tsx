@@ -1,5 +1,6 @@
-import { Columns3, Gauge } from 'lucide-react'
+import { Columns3, Gauge, TableProperties } from 'lucide-react'
 import { useMemo } from 'react'
+import { Link } from 'react-router-dom'
 
 import type { DatasetProfileResponse } from '../../types/api'
 import { formatNumber } from '../../lib/utils'
@@ -8,6 +9,7 @@ import { Panel, SectionHeading } from '../ui/Panel'
 
 interface ProfileSummaryCardProps {
   profile: DatasetProfileResponse
+  datasetId?: string
 }
 
 interface ColumnSummary {
@@ -36,7 +38,7 @@ function describeFlag(flag: ColumnSummary['flag']) {
   return { tone: 'muted' as const, label: 'Within thresholds' }
 }
 
-export function ProfileSummaryCard({ profile }: ProfileSummaryCardProps) {
+export function ProfileSummaryCard({ profile, datasetId }: ProfileSummaryCardProps) {
   const summaries = useMemo<ColumnSummary[]>(() => {
     return profile.columns.map((column) => ({
       name: column.name,
@@ -55,7 +57,17 @@ export function ProfileSummaryCard({ profile }: ProfileSummaryCardProps) {
         description="The profile is the input to every detector and to the quality score. Quanta never recomputes it; the backend persists the JSONB metrics."
         eyebrow="Profile summary"
         title="Profile"
-        action={<Badge dot tone={profile.sampled === 'full' ? 'success' : 'info'}>{profile.sampled === 'full' ? 'Full sample' : 'Bounded sample'}</Badge>}
+        action={
+          <div className="flex flex-wrap items-center justify-end gap-1">
+            <Badge dot tone={profile.sampled === 'full' ? 'success' : 'info'}>{profile.sampled === 'full' ? 'Full sample' : 'Bounded sample'}</Badge>
+            {datasetId ? (
+              <Link className="inline-flex items-center gap-1 rounded border border-line bg-elevated px-2 py-1 text-[11px] font-semibold tracking-wide text-muted hover:border-accent/60 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" to={`/datasets/${datasetId}/profile`}>
+                <TableProperties aria-hidden="true" size={11} />
+                View full profile
+              </Link>
+            ) : null}
+          </div>
+        }
       />
 
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
