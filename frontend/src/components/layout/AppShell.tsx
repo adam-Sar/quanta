@@ -8,10 +8,10 @@ import { Sidebar, type NavigationItem } from './Sidebar'
 import { Topbar } from './Topbar'
 
 const navigationItems: NavigationItem[] = [
-  { label: 'Overview', description: 'System posture', to: '/', icon: LayoutDashboard },
-  { label: 'Datasets', description: 'Source inventory', to: '/datasets', icon: Database },
-  { label: 'Jobs', description: 'Analysis runs', to: '/jobs', icon: BriefcaseBusiness },
-  { label: 'Settings', description: 'Runtime controls', to: '/settings', icon: Settings2 },
+  { label: 'Overview', to: '/', icon: LayoutDashboard },
+  { label: 'Datasets', to: '/datasets', icon: Database },
+  { label: 'Jobs', to: '/jobs', icon: BriefcaseBusiness },
+  { label: 'Settings', to: '/settings', icon: Settings2 },
 ]
 
 function getPageTitle(pathname: string): string {
@@ -43,7 +43,7 @@ export function AppShell() {
           serviceState={serviceState}
         />
         <div className="flex min-w-0 flex-1 flex-col">
-          <Topbar onMenuClick={() => setMobileNavOpen(true)} serviceState={serviceState} title={getPageTitle(location.pathname)} />
+          <Topbar onMenuClick={() => setMobileNavOpen(true)} title={getPageTitle(location.pathname)} />
           <main className="flex-1">
             <div className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
               <Outlet />

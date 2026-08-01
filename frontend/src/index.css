@@ -35,9 +35,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
-  background:
-    linear-gradient(180deg, rgb(12 25 39 / 0.24), transparent 34rem),
-    rgb(var(--color-canvas));
+  background: rgb(var(--color-canvas));
 }
 
 button,
