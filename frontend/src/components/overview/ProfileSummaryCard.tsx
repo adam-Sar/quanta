@@ -71,17 +71,17 @@ export function ProfileSummaryCard({ profile, datasetId }: ProfileSummaryCardPro
       />
 
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-md border border-line bg-canvas/30 px-4 py-3.5">
+        <div className="rounded-md border border-line bg-surface-2 px-4 py-3.5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Sample size</p>
           <p className="mt-2 text-xl font-semibold text-ink">{formatNumber(profile.sample_size)}</p>
           <p className="mt-1 text-xs text-muted">rows considered by the profiler</p>
         </div>
-        <div className="rounded-md border border-line bg-canvas/30 px-4 py-3.5">
+        <div className="rounded-md border border-line bg-surface-2 px-4 py-3.5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Profile duration</p>
           <p className="mt-2 text-xl font-semibold text-ink">{formatNumber(profile.duration_ms)}<span className="text-sm text-muted"> ms</span></p>
           <p className="mt-1 text-xs text-muted">wall-clock for this run</p>
         </div>
-        <div className="rounded-md border border-line bg-canvas/30 px-4 py-3.5">
+        <div className="rounded-md border border-line bg-surface-2 px-4 py-3.5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Columns</p>
           <p className="mt-2 text-xl font-semibold text-ink">{formatNumber(profile.columns.length)}</p>
           <p className="mt-1 text-xs text-muted">typed metrics captured</p>
@@ -91,14 +91,14 @@ export function ProfileSummaryCard({ profile, datasetId }: ProfileSummaryCardPro
       <div className="mt-6">
         <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Flagged columns</h3>
         {flagged.length === 0 ? (
-          <p className="mt-3 rounded-md border border-dashed border-line bg-canvas/30 px-4 py-3 text-sm text-muted">
+          <p className="mt-3 rounded-md border border-dashed border-line bg-surface-2 px-4 py-3 text-sm text-muted">
             No columns currently breach the null or distinct thresholds the detectors inspect.
           </p>
         ) : (
           <div className="mt-3 overflow-hidden rounded-md border border-line">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-line bg-canvas/30 text-[10px] uppercase tracking-[0.12em] text-muted">
+                <tr className="border-b border-line bg-surface-2 text-[10px] uppercase tracking-[0.12em] text-muted">
                   <th className="px-4 py-2">Column</th>
                   <th className="px-4 py-2">Type</th>
                   <th className="px-4 py-2">Null rate</th>
@@ -110,7 +110,7 @@ export function ProfileSummaryCard({ profile, datasetId }: ProfileSummaryCardPro
                 {flagged.map((column) => {
                   const flag = describeFlag(column.flag)
                   return (
-                    <tr className="border-b border-line/70 last:border-b-0" key={column.name}>
+                    <tr className="border-b border-line/40 last:border-b-0" key={column.name}>
                       <td className="px-4 py-2 font-mono text-ink">{column.name}</td>
                       <td className="px-4 py-2 font-mono text-muted">{column.physical_type}</td>
                       <td className="px-4 py-2 font-mono text-ink">{(column.null_rate * 100).toFixed(1)}%</td>
@@ -127,10 +127,10 @@ export function ProfileSummaryCard({ profile, datasetId }: ProfileSummaryCardPro
 
       <div className="mt-6 flex items-center gap-2 border-t border-line pt-4 text-xs text-muted">
         <Gauge aria-hidden="true" size={14} />
-        <span>Profile id <span className="font-mono text-ink/80">{profile.profile_id.slice(0, 8)}</span></span>
+        <span>Profile id <span className="font-mono text-ink-soft">{profile.profile_id.slice(0, 8)}</span></span>
         <span aria-hidden="true">·</span>
         <Columns3 aria-hidden="true" size={14} />
-        <span>Version <span className="font-mono text-ink/80">{profile.dataset_version_id.slice(0, 8)}</span></span>
+        <span>Version <span className="font-mono text-ink-soft">{profile.dataset_version_id.slice(0, 8)}</span></span>
       </div>
     </Panel>
   )

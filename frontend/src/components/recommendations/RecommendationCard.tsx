@@ -85,26 +85,26 @@ export function RecommendationCard({ recommendation }: RecommendationCardProps) 
       />
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-md border border-line bg-canvas/30 px-4 py-3.5">
+        <div className="rounded-md border border-line bg-surface-2 px-4 py-3.5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Kind</p>
           <p className="mt-2 text-base font-semibold text-ink">{KIND_LABELS[recommendation.kind]}</p>
           <p className="mt-1 text-xs text-muted font-mono">{recommendation.kind}</p>
         </div>
-        <div className="rounded-md border border-line bg-canvas/30 px-4 py-3.5">
+        <div className="rounded-md border border-line bg-surface-2 px-4 py-3.5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Confidence</p>
           <p className="mt-2 text-base font-semibold text-ink">
             <span className="font-mono">{(recommendation.confidence * 100).toFixed(0)}%</span>
           </p>
           <p className="mt-1 text-xs text-muted">deterministic from the rule engine</p>
         </div>
-        <div className="rounded-md border border-line bg-canvas/30 px-4 py-3.5">
+        <div className="rounded-md border border-line bg-surface-2 px-4 py-3.5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Priority</p>
           <p className="mt-2 text-base font-semibold text-ink">
             <span className="font-mono">{formatNumber(recommendation.priority)}</span>
           </p>
           <p className="mt-1 text-xs text-muted">severity weight × confidence</p>
         </div>
-        <div className="rounded-md border border-line bg-canvas/30 px-4 py-3.5">
+        <div className="rounded-md border border-line bg-surface-2 px-4 py-3.5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Affected columns</p>
           <p className="mt-2 text-base font-semibold text-ink">{formatNumber(recommendation.affected_columns.length)}</p>
           <p className="mt-1 text-xs text-muted">referenced by this row</p>
@@ -120,7 +120,7 @@ export function RecommendationCard({ recommendation }: RecommendationCardProps) 
       </div>
 
       {recommendation.operation ? (
-        <div className="mt-6 rounded-md border border-line bg-canvas/20 p-4">
+        <div className="mt-6 rounded-md border border-line bg-surface-2 p-4">
           <div className="flex items-center gap-2 text-ink">
             <FileSearch2 aria-hidden="true" size={14} />
             <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Preview-only operation</h3>
@@ -149,7 +149,7 @@ export function RecommendationCard({ recommendation }: RecommendationCardProps) 
 
       <div className="mt-6 flex items-center gap-2 border-t border-line pt-4 text-xs text-muted">
         <KeyRound aria-hidden="true" size={14} />
-        <span>Recommendation id <span className="font-mono text-ink/80">{recommendation.recommendation_id.slice(0, 8)}</span></span>
+        <span>Recommendation id <span className="font-mono text-ink-soft">{recommendation.recommendation_id.slice(0, 8)}</span></span>
         <span aria-hidden="true">·</span>
         <span>Created {formatTimestamp(recommendation.created_at)}</span>
       </div>

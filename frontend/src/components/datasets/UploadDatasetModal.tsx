@@ -14,7 +14,7 @@ interface UploadDatasetModalProps {
   onSubmit: (input: { file: File; name: string; description: string }) => void
 }
 
-const inputClasses = 'mt-2 block h-10 w-full rounded-md border border-line bg-canvas/50 px-3 text-sm text-ink outline-none placeholder:text-muted/70 focus:border-accent focus:ring-1 focus:ring-accent'
+const inputClasses = 'mt-2 block h-10 w-full rounded-md border border-line bg-canvas/50 px-3 text-sm text-ink outline-none placeholder:text-muted focus:border-accent focus:ring-1 focus:ring-accent'
 
 export function UploadDatasetModal({ open, isSubmitting, error, onClose, onSubmit }: UploadDatasetModalProps) {
   const [file, setFile] = useState<File | null>(null)
@@ -75,7 +75,7 @@ export function UploadDatasetModal({ open, isSubmitting, error, onClose, onSubmi
 
         <div>
           <label className="text-xs font-medium text-ink" htmlFor="dataset-file">Source file</label>
-          <label className="mt-2 flex cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-line bg-canvas/30 px-4 py-7 text-center transition-colors hover:border-accent/70 hover:bg-accent/5" htmlFor="dataset-file">
+          <label className="mt-2 flex cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-line bg-surface-2 px-4 py-7 text-center transition-colors hover:border-accent/70 hover:bg-accent/5" htmlFor="dataset-file">
             <UploadCloud aria-hidden="true" className="text-accent" size={22} strokeWidth={1.7} />
             <span className="mt-3 text-sm font-medium text-ink">{file ? file.name : 'Choose a CSV or Parquet file'}</span>
             <span className="mt-1 text-xs text-muted">The API enforces its configured upload size limit.</span>
@@ -92,7 +92,7 @@ export function UploadDatasetModal({ open, isSubmitting, error, onClose, onSubmi
 
         <div>
           <label className="text-xs font-medium text-ink" htmlFor="dataset-description">Description <span className="font-normal text-muted">(optional)</span></label>
-          <textarea className="mt-2 block min-h-20 w-full resize-y rounded-md border border-line bg-canvas/50 px-3 py-2 text-sm text-ink outline-none placeholder:text-muted/70 focus:border-accent focus:ring-1 focus:ring-accent" id="dataset-description" maxLength={2000} onChange={(event) => setDescription(event.target.value)} placeholder="What does this source represent?" value={description} />
+          <textarea className="mt-2 block min-h-20 w-full resize-y rounded-md border border-line bg-canvas/50 px-3 py-2 text-sm text-ink outline-none placeholder:text-muted focus:border-accent focus:ring-1 focus:ring-accent" id="dataset-description" maxLength={2000} onChange={(event) => setDescription(event.target.value)} placeholder="What does this source represent?" value={description} />
         </div>
       </div>
     </Modal>

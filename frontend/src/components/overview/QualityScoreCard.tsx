@@ -47,7 +47,7 @@ export function QualityScoreCard({ score, components }: QualityScoreCardProps) {
       />
 
       <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-stretch">
-        <div className="flex w-full flex-col gap-4 rounded-md border border-line bg-canvas/30 p-5 lg:w-72">
+        <div className="flex w-full flex-col gap-4 rounded-md border border-line bg-surface-2 p-5 lg:w-72">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <GradeBadge grade={score.grade} />
@@ -77,7 +77,7 @@ export function QualityScoreCard({ score, components }: QualityScoreCardProps) {
             </div>
           </dl>
           <div className="mt-2 border-t border-line pt-3 text-[11px] text-muted">
-            <p>Scored at <span className="font-mono text-ink/80">{formatTimestamp(score.created_at)}</span></p>
+            <p>Scored at <span className="font-mono text-ink-soft">{formatTimestamp(score.created_at)}</span></p>
           </div>
         </div>
 
@@ -93,7 +93,7 @@ export function QualityScoreCard({ score, components }: QualityScoreCardProps) {
                       <span className="text-muted">{label}</span>
                       <span className="font-mono text-ink">{entry ? formatPenalty(entry.penalty_normalized) : '—'}</span>
                     </div>
-                    <div className="mt-1 h-1.5 rounded bg-canvas/40">
+                    <div className="mt-1 h-1.5 rounded bg-surface-2">
                       <div
                         className="h-full rounded bg-accent"
                         style={{ width: `${Math.max(0, Math.min(1, share)) * 100}%` }}

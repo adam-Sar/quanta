@@ -45,8 +45,8 @@ export function LineageCard({ datasetId, lineage }: LineageCardProps) {
           <ol className="relative space-y-4 border-l border-line pl-5">
             {edges.map((edge) => (
               <li className="relative" key={`${edge.from_version_id}-${edge.to_version_id}`}>
-                <span className="absolute -left-[26px] top-2 inline-flex h-3 w-3 -translate-x-1/2 rounded-full border-2 border-canvas bg-accent" aria-hidden="true" />
-                <div className="flex flex-col gap-1 rounded-md border border-line bg-canvas/30 px-4 py-3">
+                <span className="absolute -left-[26px] top-2 inline-flex h-3 w-3 -translate-x-1/2 rounded-full border-2 border-line bg-accent" aria-hidden="true" />
+                <div className="flex flex-col gap-1 rounded-md border border-line bg-surface-2 px-4 py-3">
                   <p className="text-xs font-medium text-ink">
                     v{edge.from_version_number} → v{edge.to_version_number}
                   </p>

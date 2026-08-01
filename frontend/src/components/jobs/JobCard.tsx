@@ -112,22 +112,22 @@ export function JobCard({ job }: JobCardProps) {
       />
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-md border border-line bg-canvas/30 px-4 py-3.5">
+        <div className="rounded-md border border-line bg-surface-2 px-4 py-3.5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Kind</p>
           <p className="mt-2 text-base font-semibold text-ink font-mono">{job.kind}</p>
           <p className="mt-1 text-xs text-muted">deterministic, synchronous</p>
         </div>
-        <div className="rounded-md border border-line bg-canvas/30 px-4 py-3.5">
+        <div className="rounded-md border border-line bg-surface-2 px-4 py-3.5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Created</p>
           <p className="mt-2 text-base font-semibold text-ink">{formatTimestamp(job.created_at)}</p>
           <p className="mt-1 text-xs text-muted">status start</p>
         </div>
-        <div className="rounded-md border border-line bg-canvas/30 px-4 py-3.5">
+        <div className="rounded-md border border-line bg-surface-2 px-4 py-3.5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Started</p>
           <p className="mt-2 text-base font-semibold text-ink">{job.started_at ? formatTimestamp(job.started_at) : '—'}</p>
           <p className="mt-1 text-xs text-muted">worker dispatch</p>
         </div>
-        <div className="rounded-md border border-line bg-canvas/30 px-4 py-3.5">
+        <div className="rounded-md border border-line bg-surface-2 px-4 py-3.5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Completed</p>
           <p className="mt-2 text-base font-semibold text-ink">{job.completed_at ? formatTimestamp(job.completed_at) : '—'}</p>
           <p className="mt-1 text-xs text-muted">{job.started_at ? `${formatDuration(job.started_at, job.completed_at)} wall clock` : 'not yet completed'}</p>
@@ -142,9 +142,9 @@ export function JobCard({ job }: JobCardProps) {
           </h3>
           <ul className="mt-2 space-y-1 text-sm text-ink">
             {resultSummary.map(({ label, value }) => (
-              <li key={`${job.job_id}-${label}`} className="flex items-center gap-3 rounded-md border border-line bg-canvas/20 px-3 py-1.5">
+              <li key={`${job.job_id}-${label}`} className="flex items-center gap-3 rounded-md border border-line bg-surface-2 px-3 py-1.5">
                 <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted w-44 shrink-0">{label}</span>
-                <ChevronRight aria-hidden="true" className="text-muted/60" size={12} />
+                <ChevronRight aria-hidden="true" className="text-muted" size={12} />
                 <span className="font-mono text-xs">{value}</span>
               </li>
             ))}
@@ -167,13 +167,13 @@ export function JobCard({ job }: JobCardProps) {
 
       <div className="mt-6 flex items-center gap-2 border-t border-line pt-4 text-xs text-muted">
         <KeyRound aria-hidden="true" size={14} />
-        <span>Job id <span className="font-mono text-ink/80">{job.job_id.slice(0, 8)}</span></span>
+        <span>Job id <span className="font-mono text-ink-soft">{job.job_id.slice(0, 8)}</span></span>
         <span aria-hidden="true">·</span>
-        <span>Formula <span className="font-mono text-ink/80">{job.formula_version}</span></span>
+        <span>Formula <span className="font-mono text-ink-soft">{job.formula_version}</span></span>
         {job.profile_id ? (
           <>
             <span aria-hidden="true">·</span>
-            <span>Profile <span className="font-mono text-ink/80">{job.profile_id.slice(0, 8)}</span></span>
+            <span>Profile <span className="font-mono text-ink-soft">{job.profile_id.slice(0, 8)}</span></span>
           </>
         ) : null}
       </div>

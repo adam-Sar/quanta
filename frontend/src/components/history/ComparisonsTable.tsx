@@ -27,7 +27,7 @@ function SortButton({ active, direction, label, onClick }: { active: boolean; di
   return (
     <button className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" onClick={onClick} type="button">
       {label}
-      <ArrowUpDown aria-hidden="true" className={active ? 'text-accent' : 'text-muted/60'} size={13} />
+      <ArrowUpDown aria-hidden="true" className={active ? 'text-accent' : 'text-muted'} size={13} />
       {active ? <span className="sr-only">{direction === 'asc' ? 'ascending' : 'descending'}</span> : null}
     </button>
   )
@@ -133,7 +133,7 @@ export function ComparisonsTable({
       <div className="overflow-x-auto">
         <table className="min-w-[920px] w-full text-left text-xs">
           <thead>
-            <tr className="border-b border-line bg-canvas/30 text-[10px] uppercase tracking-[0.12em] text-muted">
+            <tr className="border-b border-line bg-surface-2 text-[10px] uppercase tracking-[0.12em] text-muted">
               <th className="px-3 py-2">Comparison id</th>
               <th className="px-3 py-2"><SortButton active={sortKey === 'base'} direction={sortDirection} label="Base" onClick={() => handleSort('base')} /></th>
               <th className="px-3 py-2"><SortButton active={sortKey === 'target'} direction={sortDirection} label="Target" onClick={() => handleSort('target')} /></th>
@@ -154,7 +154,7 @@ export function ComparisonsTable({
               return (
                 <tr
                   className={cn(
-                    'cursor-pointer border-b border-line/70 last:border-b-0 hover:bg-elevated/40',
+                    'cursor-pointer border-b border-line/40 last:border-b-0 hover:bg-canvas',
                     isSelected && 'bg-accent/5 hover:bg-accent/10',
                   )}
                   key={row.comparison_id}
@@ -162,7 +162,7 @@ export function ComparisonsTable({
                 >
                   <td className="px-3 py-2 font-mono text-ink">
                     <p>{row.comparison_id.slice(0, 8)}</p>
-                    <p className="mt-0.5 text-[10px] text-muted/70">{row.formula_version}</p>
+                    <p className="mt-0.5 text-[10px] text-muted">{row.formula_version}</p>
                   </td>
                   <td className="px-3 py-2 font-mono text-muted">{baseNumber !== undefined ? `v${baseNumber}` : '—'}</td>
                   <td className="px-3 py-2 font-mono text-ink">{targetNumber !== undefined ? `v${targetNumber}` : '—'}</td>

@@ -92,7 +92,7 @@ export function DistributionDriftCard({ drift }: DistributionDriftCardProps) {
       />
 
       {totalNumericRows === 0 ? (
-        <p className="mt-3 rounded-md border border-dashed border-line bg-canvas/30 px-4 py-4 text-sm text-muted">
+        <p className="mt-3 rounded-md border border-dashed border-line bg-surface-2 px-4 py-4 text-sm text-muted">
           The two versions share no numeric columns, or no numeric drift was detected.
         </p>
       ) : null}
@@ -106,7 +106,7 @@ export function DistributionDriftCard({ drift }: DistributionDriftCardProps) {
           <div className="mt-2 overflow-hidden rounded-md border border-line">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-line bg-canvas/30 text-[10px] uppercase tracking-[0.12em] text-muted">
+                <tr className="border-b border-line bg-surface-2 text-[10px] uppercase tracking-[0.12em] text-muted">
                   <th className="px-4 py-2">Column</th>
                   <th className="px-4 py-2">Metric</th>
                   <th className="px-4 py-2 text-right">Base</th>
@@ -118,7 +118,7 @@ export function DistributionDriftCard({ drift }: DistributionDriftCardProps) {
               </thead>
               <tbody>
                 {drift.numeric.map((row) => (
-                  <tr className="border-b border-line/70 last:border-b-0" key={`${row.column}-${row.metric}`}>
+                  <tr className="border-b border-line/40 last:border-b-0" key={`${row.column}-${row.metric}`}>
                     <td className="px-4 py-2 font-mono text-ink">{row.column}</td>
                     <td className="px-4 py-2 font-mono text-muted">{row.metric}</td>
                     <td className="px-4 py-2 text-right font-mono text-muted">{formatNullableNumber(row.base_value)}</td>
@@ -135,7 +135,7 @@ export function DistributionDriftCard({ drift }: DistributionDriftCardProps) {
       ) : null}
 
       {totalCategoricalRows === 0 ? (
-        <p className="mt-6 rounded-md border border-dashed border-line bg-canvas/30 px-4 py-4 text-sm text-muted">
+        <p className="mt-6 rounded-md border border-dashed border-line bg-surface-2 px-4 py-4 text-sm text-muted">
           The two versions share no categorical columns, or no categorical drift was detected.
         </p>
       ) : null}
@@ -149,7 +149,7 @@ export function DistributionDriftCard({ drift }: DistributionDriftCardProps) {
           <div className="mt-2 overflow-hidden rounded-md border border-line">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-line bg-canvas/30 text-[10px] uppercase tracking-[0.12em] text-muted">
+                <tr className="border-b border-line bg-surface-2 text-[10px] uppercase tracking-[0.12em] text-muted">
                   <th className="px-4 py-2">Column</th>
                   <th className="px-4 py-2 text-right">PSI</th>
                   <th className="px-4 py-2">Top base values</th>
@@ -159,7 +159,7 @@ export function DistributionDriftCard({ drift }: DistributionDriftCardProps) {
               </thead>
               <tbody>
                 {drift.categorical.map((row) => (
-                  <tr className="border-b border-line/70 last:border-b-0" key={`psi-${row.column}`}>
+                  <tr className="border-b border-line/40 last:border-b-0" key={`psi-${row.column}`}>
                     <td className="px-4 py-2 font-mono text-ink">{row.column}</td>
                     <td className="px-4 py-2 text-right font-mono text-ink">{formatNumber(row.psi, 4)}</td>
                     <td className="px-4 py-2 text-[11px] text-muted">{summarizeTopValues(row.base_top_values)}</td>

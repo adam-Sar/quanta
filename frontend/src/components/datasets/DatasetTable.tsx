@@ -26,7 +26,7 @@ function SortButton({ active, direction, label, onClick }: { active: boolean; di
   return (
     <button className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" onClick={onClick} type="button">
       {label}
-      <ArrowUpDown aria-hidden="true" className={active ? 'text-accent' : 'text-muted/60'} size={13} />
+      <ArrowUpDown aria-hidden="true" className={active ? 'text-accent' : 'text-muted'} size={13} />
       {active ? <span className="sr-only">{direction === 'asc' ? 'ascending' : 'descending'}</span> : null}
     </button>
   )
@@ -58,7 +58,7 @@ export function DatasetTable({ items, sortKey, sortDirection, onSort }: DatasetT
             const FormatIcon = version?.format === 'parquet' ? FileArchive : FileSpreadsheet
 
             return (
-              <tr className="group border-b border-line/70 last:border-b-0 hover:bg-elevated/30" key={dataset.id}>
+              <tr className="group border-b border-line/40 last:border-b-0 hover:bg-canvas" key={dataset.id}>
                 <td className="px-5 py-4">
                   <Link className="flex min-w-0 items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" title={dataset.description ?? undefined} to={`/datasets/${dataset.id}`}>
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded border border-line bg-elevated text-accent"><Database aria-hidden="true" size={15} strokeWidth={1.7} /></span>
@@ -70,7 +70,7 @@ export function DatasetTable({ items, sortKey, sortDirection, onSort }: DatasetT
                 <td className="px-4 py-4 font-mono text-xs text-ink">{formatNumber(version?.column_count)}</td>
                 <td className="px-4 py-4"><span className="inline-flex items-center gap-2 text-xs text-muted"><FormatIcon aria-hidden="true" size={15} />{version?.format?.toUpperCase() ?? '—'}<span className="sr-only"> file</span></span></td>
                 <td className="px-4 py-4"><Badge tone={version?.status === 'stored' ? 'success' : 'muted'}>{version?.status ?? 'No version'}</Badge></td>
-                <td className="px-4 py-4"><span className="block whitespace-nowrap text-xs text-muted">{formatTimestamp(dataset.updated_at)}</span><span className="mt-1 block text-[10px] text-muted/70">{formatBytes(version?.size_bytes)}</span></td>
+                <td className="px-4 py-4"><span className="block whitespace-nowrap text-xs text-muted">{formatTimestamp(dataset.updated_at)}</span><span className="mt-1 block text-[10px] text-muted">{formatBytes(version?.size_bytes)}</span></td>
                 <td className="px-4 py-4"><Link aria-label={`Open ${dataset.name}`} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted hover:bg-elevated hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" to={`/datasets/${dataset.id}`}><ExternalLink aria-hidden="true" size={15} /></Link></td>
               </tr>
             )

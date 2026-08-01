@@ -71,7 +71,7 @@ export function ScoreDriftCard({ scoreDrift }: ScoreDriftCardProps) {
       />
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-md border border-line bg-canvas/30 px-4 py-3.5">
+        <div className="rounded-md border border-line bg-surface-2 px-4 py-3.5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Base score</p>
           <p className="mt-2 text-base font-semibold text-ink">
             <span className="font-mono">{formatNullableScore(base_score)}</span>
@@ -79,7 +79,7 @@ export function ScoreDriftCard({ scoreDrift }: ScoreDriftCardProps) {
           </p>
           <p className="mt-1 text-xs text-muted">quality score on the base version</p>
         </div>
-        <div className="rounded-md border border-line bg-canvas/30 px-4 py-3.5">
+        <div className="rounded-md border border-line bg-surface-2 px-4 py-3.5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Target score</p>
           <p className="mt-2 text-base font-semibold text-ink">
             <span className="font-mono">{formatNullableScore(target_score)}</span>
@@ -87,7 +87,7 @@ export function ScoreDriftCard({ scoreDrift }: ScoreDriftCardProps) {
           </p>
           <p className="mt-1 text-xs text-muted">quality score on the target version</p>
         </div>
-        <div className="rounded-md border border-line bg-canvas/30 px-4 py-3.5">
+        <div className="rounded-md border border-line bg-surface-2 px-4 py-3.5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Delta</p>
           <p className="mt-2 flex items-center gap-2 text-base font-semibold text-ink">
             {directionIcon}
@@ -95,7 +95,7 @@ export function ScoreDriftCard({ scoreDrift }: ScoreDriftCardProps) {
           </p>
           <p className="mt-1 text-xs text-muted">{formatNumber(absolute_delta ?? null, 1)} absolute</p>
         </div>
-        <div className="rounded-md border border-line bg-canvas/30 px-4 py-3.5">
+        <div className="rounded-md border border-line bg-surface-2 px-4 py-3.5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Grade</p>
           <p className="mt-2 text-base font-semibold text-ink">
             {base_grade && target_grade ? (

@@ -24,12 +24,12 @@ function TypeChangeRow({ column }: { column: ColumnDiffResponse }) {
   const baseType = column.base_physical_type ?? '—'
   const targetType = column.target_physical_type ?? '—'
   return (
-    <li className="grid gap-2 border-b border-line/70 px-4 py-2.5 last:border-b-0 sm:grid-cols-[1.4fr_0.6fr_1.4fr] sm:items-center">
+    <li className="grid gap-2 border-b border-line/40 px-4 py-2.5 last:border-b-0 sm:grid-cols-[1.4fr_0.6fr_1.4fr] sm:items-center">
       <p className="font-mono text-ink">{column.name}</p>
       <Badge dot tone={changeTone(column.change)}>{changeLabel(column.change)}</Badge>
       <p className="flex items-center gap-2 font-mono text-[11px] text-muted">
         <span className="rounded border border-line bg-elevated px-1.5 py-0.5 text-ink">{baseType}</span>
-        <ArrowLeftRight aria-hidden="true" className="text-muted/60" size={12} />
+        <ArrowLeftRight aria-hidden="true" className="text-muted" size={12} />
         <span className="rounded border border-line bg-elevated px-1.5 py-0.5 text-ink">{targetType}</span>
       </p>
     </li>
@@ -71,7 +71,7 @@ export function SchemaDiffCard({ schemaDiff }: SchemaDiffCardProps) {
       />
 
       {totalChanges === 0 ? (
-        <p className="mt-3 rounded-md border border-dashed border-line bg-canvas/30 px-4 py-4 text-sm text-muted">
+        <p className="mt-3 rounded-md border border-dashed border-line bg-surface-2 px-4 py-4 text-sm text-muted">
           The two versions have identical column sets and types. No schema drift was detected.
         </p>
       ) : null}

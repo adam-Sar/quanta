@@ -100,9 +100,9 @@ export function HypothesisCard({ hypothesis }: HypothesisCardProps) {
         ) : (
           <ul className="mt-2 space-y-1 font-mono text-[11px] text-muted">
             {hypothesis.supporting_finding_ids.map((id) => (
-              <li className="rounded border border-line bg-canvas/30 px-3 py-1.5" key={`${hypothesis.category}-${id}`}>
+              <li className="rounded border border-line bg-surface-2 px-3 py-1.5" key={`${hypothesis.category}-${id}`}>
                 <span className="text-ink">{id.slice(0, 8)}</span>
-                <span className="ml-2 text-muted/70">…{id.slice(-4)}</span>
+                <span className="ml-2 text-muted">…{id.slice(-4)}</span>
               </li>
             ))}
           </ul>
@@ -110,9 +110,9 @@ export function HypothesisCard({ hypothesis }: HypothesisCardProps) {
       </div>
 
       <div className="mt-6 flex items-center gap-3 text-xs text-muted">
-        <span>Confidence <span className="font-mono text-ink/80">{formatNumber(hypothesis.confidence, 2)}</span></span>
+        <span>Confidence <span className="font-mono text-ink-soft">{formatNumber(hypothesis.confidence, 2)}</span></span>
         <span aria-hidden="true">·</span>
-        <span>Category <span className="font-mono text-ink/80">{hypothesis.category}</span></span>
+        <span>Category <span className="font-mono text-ink-soft">{hypothesis.category}</span></span>
       </div>
     </Panel>
   )

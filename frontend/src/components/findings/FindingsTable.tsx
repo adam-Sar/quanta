@@ -40,7 +40,7 @@ function SortButton({ active, direction, label, onClick }: { active: boolean; di
   return (
     <button className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" onClick={onClick} type="button">
       {label}
-      <ArrowUpDown aria-hidden="true" className={active ? 'text-accent' : 'text-muted/60'} size={13} />
+      <ArrowUpDown aria-hidden="true" className={active ? 'text-accent' : 'text-muted'} size={13} />
       {active ? <span className="sr-only">{direction === 'asc' ? 'ascending' : 'descending'}</span> : null}
     </button>
   )
@@ -153,7 +153,7 @@ export function FindingsTable({
             <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-2 text-muted" size={13} />
             <label className="sr-only" htmlFor="findings-search">Search findings</label>
             <input
-              className="h-8 w-full rounded-md border border-line bg-canvas/50 pl-8 pr-3 text-xs text-ink outline-none placeholder:text-muted/70 focus:border-accent focus:ring-1 focus:ring-accent"
+              className="h-8 w-full rounded-md border border-line bg-canvas/50 pl-8 pr-3 text-xs text-ink outline-none placeholder:text-muted focus:border-accent focus:ring-1 focus:ring-accent"
               id="findings-search"
               onChange={(event) => onFiltersChange({ ...filters, search: event.target.value })}
               placeholder="Search findings"
@@ -226,7 +226,7 @@ export function FindingsTable({
         <div className="overflow-x-auto rounded-md border border-line">
           <table className="min-w-[920px] w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-line bg-canvas/30 text-[10px] uppercase tracking-[0.12em] text-muted">
+              <tr className="border-b border-line bg-surface-2 text-[10px] uppercase tracking-[0.12em] text-muted">
                 <th className="px-3 py-2 w-10"></th>
                 <th className="px-3 py-2"><SortButton active={sortKey === 'severity'} direction={sortDirection} label={sortLabels.severity} onClick={() => handleSort('severity')} /></th>
                 <th className="px-3 py-2"><SortButton active={sortKey === 'kind'} direction={sortDirection} label={sortLabels.kind} onClick={() => handleSort('kind')} /></th>
@@ -243,7 +243,7 @@ export function FindingsTable({
                 return (
                   <tr
                     className={cn(
-                      'cursor-pointer border-b border-line/70 last:border-b-0 hover:bg-elevated/40',
+                      'cursor-pointer border-b border-line/40 last:border-b-0 hover:bg-canvas',
                       isSelected && 'bg-accent/5 hover:bg-accent/10',
                     )}
                     key={finding.finding_id}
@@ -252,13 +252,13 @@ export function FindingsTable({
                     <td className="px-3 py-2 font-mono text-muted">{severityOrder.indexOf(finding.severity) === 0 ? '★' : ''}</td>
                     <td className="px-3 py-2"><SeverityBadge severity={finding.severity} /></td>
                     <td className="px-3 py-2 font-mono text-ink">{kindLabels[finding.kind]}</td>
-                    <td className="px-3 py-2 font-mono text-muted">{finding.column_name ?? <span className="text-muted/60">—</span>}</td>
+                    <td className="px-3 py-2 font-mono text-muted">{finding.column_name ?? <span className="text-muted">—</span>}</td>
                     <td className="px-3 py-2 font-mono text-muted">{finding.metric}</td>
                     <td className="px-3 py-2 text-right font-mono text-ink">{finding.value.toFixed(3)}</td>
                     <td className="px-3 py-2 text-right font-mono text-muted">{finding.threshold.toFixed(3)}</td>
                     <td className="px-3 py-2 max-w-[420px]">
                       <p className="truncate text-ink">{finding.description}</p>
-                      <p className="mt-0.5 font-mono text-[10px] text-muted/70">{finding.finding_id.slice(0, 8)}</p>
+                      <p className="mt-0.5 font-mono text-[10px] text-muted">{finding.finding_id.slice(0, 8)}</p>
                     </td>
                   </tr>
                 )

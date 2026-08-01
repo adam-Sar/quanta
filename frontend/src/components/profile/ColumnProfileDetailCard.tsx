@@ -18,7 +18,7 @@ interface MetricBlockProps {
 
 function MetricBlock({ label, value, caption }: MetricBlockProps) {
   return (
-    <div className="rounded-md border border-line bg-canvas/30 px-4 py-3.5">
+    <div className="rounded-md border border-line bg-surface-2 px-4 py-3.5">
       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">{label}</p>
       <p className="mt-2 text-base font-semibold text-ink">{value}</p>
       {caption ? <p className="mt-1 text-xs text-muted">{caption}</p> : null}
@@ -92,7 +92,7 @@ export function ColumnProfileDetailCard({ column }: ColumnProfileDetailCardProps
       </div>
 
       {hasNumeric ? (
-        <div className="mt-6 rounded-md border border-line bg-canvas/20 p-5">
+        <div className="mt-6 rounded-md border border-line bg-surface-2 p-5">
           <div className="flex items-center gap-2 text-ink">
             <Hash aria-hidden="true" size={15} />
             <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Numeric metrics</h3>
@@ -109,7 +109,7 @@ export function ColumnProfileDetailCard({ column }: ColumnProfileDetailCardProps
       ) : null}
 
       {hasTemporal ? (
-        <div className="mt-4 rounded-md border border-line bg-canvas/20 p-5">
+        <div className="mt-4 rounded-md border border-line bg-surface-2 p-5">
           <div className="flex items-center gap-2 text-ink">
             <CalendarClock aria-hidden="true" size={15} />
             <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Temporal range</h3>
@@ -122,7 +122,7 @@ export function ColumnProfileDetailCard({ column }: ColumnProfileDetailCardProps
       ) : null}
 
       {hasStringLength ? (
-        <div className="mt-4 rounded-md border border-line bg-canvas/20 p-5">
+        <div className="mt-4 rounded-md border border-line bg-surface-2 p-5">
           <div className="flex items-center gap-2 text-ink">
             <Ruler aria-hidden="true" size={15} />
             <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">String length</h3>
@@ -141,14 +141,14 @@ export function ColumnProfileDetailCard({ column }: ColumnProfileDetailCardProps
           <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Top values</h3>
         </div>
         {topValues.length === 0 ? (
-          <p className="mt-3 rounded-md border border-dashed border-line bg-canvas/30 px-4 py-3 text-sm text-muted">
+          <p className="mt-3 rounded-md border border-dashed border-line bg-surface-2 px-4 py-3 text-sm text-muted">
             The backend did not record any top values for this column.
           </p>
         ) : (
           <div className="mt-3 overflow-hidden rounded-md border border-line">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-line bg-canvas/30 text-[10px] uppercase tracking-[0.12em] text-muted">
+                <tr className="border-b border-line bg-surface-2 text-[10px] uppercase tracking-[0.12em] text-muted">
                   <th className="px-4 py-2">Value</th>
                   <th className="px-4 py-2 text-right">Count</th>
                   <th className="px-4 py-2 text-right">Frequency</th>
@@ -156,7 +156,7 @@ export function ColumnProfileDetailCard({ column }: ColumnProfileDetailCardProps
               </thead>
               <tbody>
                 {topValues.map((entry) => (
-                  <tr className="border-b border-line/70 last:border-b-0" key={`${column.name}-${entry.value}`}>
+                  <tr className="border-b border-line/40 last:border-b-0" key={`${column.name}-${entry.value}`}>
                     <td className="px-4 py-2 font-mono text-ink">{entry.value}</td>
                     <td className="px-4 py-2 text-right font-mono text-ink">{formatNumber(entry.count)}</td>
                     <td className="px-4 py-2 text-right font-mono text-muted">{(entry.frequency * 100).toFixed(2)}%</td>

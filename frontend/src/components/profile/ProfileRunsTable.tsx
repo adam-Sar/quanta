@@ -26,7 +26,7 @@ function SortButton({ active, direction, label, onClick }: { active: boolean; di
   return (
     <button className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" onClick={onClick} type="button">
       {label}
-      <ArrowUpDown aria-hidden="true" className={active ? 'text-accent' : 'text-muted/60'} size={13} />
+      <ArrowUpDown aria-hidden="true" className={active ? 'text-accent' : 'text-muted'} size={13} />
       {active ? <span className="sr-only">{direction === 'asc' ? 'ascending' : 'descending'}</span> : null}
     </button>
   )
@@ -94,7 +94,7 @@ export function ProfileRunsTable({
       <div className="overflow-x-auto rounded-md border border-line">
         <table className="min-w-[720px] w-full text-left text-xs">
           <thead>
-            <tr className="border-b border-line bg-canvas/30 text-[10px] uppercase tracking-[0.12em] text-muted">
+            <tr className="border-b border-line bg-surface-2 text-[10px] uppercase tracking-[0.12em] text-muted">
               <th className="px-3 py-2">Profile id</th>
               <th className="px-3 py-2">Version</th>
               <th className="px-3 py-2 text-right"><SortButton active={sortKey === 'sample_size'} direction={sortDirection} label={sortLabels.sample_size} onClick={() => handleSort('sample_size')} /></th>
@@ -112,7 +112,7 @@ export function ProfileRunsTable({
               return (
                 <tr
                   className={cn(
-                    'cursor-pointer border-b border-line/70 last:border-b-0 hover:bg-elevated/40',
+                    'cursor-pointer border-b border-line/40 last:border-b-0 hover:bg-canvas',
                     isSelected && 'bg-accent/5 hover:bg-accent/10',
                   )}
                   key={run.profile_id}
@@ -124,7 +124,7 @@ export function ProfileRunsTable({
                   </td>
                   <td className="px-3 py-2 font-mono text-muted">
                     <p>{versionInfo.label}</p>
-                    {versionInfo.isCurrent ? <p className="mt-0.5 text-[10px] text-success">current</p> : <p className="mt-0.5 text-[10px] text-muted/70">version id</p>}
+                    {versionInfo.isCurrent ? <p className="mt-0.5 text-[10px] text-success">current</p> : <p className="mt-0.5 text-[10px] text-muted">version id</p>}
                   </td>
                   <td className="px-3 py-2 text-right font-mono text-ink">{formatNumber(run.sample_size)}</td>
                   <td className="px-3 py-2">
@@ -141,7 +141,7 @@ export function ProfileRunsTable({
                   </td>
                   <td className="px-3 py-2 font-mono text-muted">
                     <p>{formatTimestamp(run.started_at)}</p>
-                    <p className="mt-0.5 text-[10px] text-muted/70">finished {formatTimestamp(run.completed_at)}</p>
+                    <p className="mt-0.5 text-[10px] text-muted">finished {formatTimestamp(run.completed_at)}</p>
                   </td>
                   <td className="px-3 py-2">
                     <Button

@@ -88,7 +88,7 @@ export function FindingsSummary({ items, totalCount }: FindingsSummaryProps) {
                   <div className="flex w-20 items-center gap-2">
                     <Badge dot tone={severityTone(severity)}>{severity}</Badge>
                   </div>
-                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-canvas/30">
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2">
                     <div
                       aria-hidden="true"
                       className="h-full rounded-full bg-accent/60"
@@ -109,7 +109,7 @@ export function FindingsSummary({ items, totalCount }: FindingsSummaryProps) {
             {(Object.keys(kindLabels) as FindingKind[]).map((kind) => {
               const count = kindCounts[kind]
               return (
-                <div className="rounded-md border border-line bg-canvas/30 px-4 py-3" key={kind}>
+                <div className="rounded-md border border-line bg-surface-2 px-4 py-3" key={kind}>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">{kindLabels[kind]}</p>
                   <p className="mt-2 font-mono text-base text-ink">{formatNumber(count)}</p>
                 </div>

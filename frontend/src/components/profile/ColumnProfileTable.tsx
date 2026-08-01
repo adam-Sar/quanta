@@ -39,7 +39,7 @@ function SortButton({ active, direction, label, onClick }: { active: boolean; di
   return (
     <button className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" onClick={onClick} type="button">
       {label}
-      <ArrowUpDown aria-hidden="true" className={active ? 'text-accent' : 'text-muted/60'} size={13} />
+      <ArrowUpDown aria-hidden="true" className={active ? 'text-accent' : 'text-muted'} size={13} />
       {active ? <span className="sr-only">{direction === 'asc' ? 'ascending' : 'descending'}</span> : null}
     </button>
   )
@@ -93,7 +93,7 @@ export function ColumnProfileTable({
     })
   }, [columns, search, sortKey, sortDirection])
 
-  const searchInputClasses = 'h-8 w-full rounded-md border border-line bg-canvas/50 pl-8 pr-3 text-xs text-ink outline-none placeholder:text-muted/70 focus:border-accent focus:ring-1 focus:ring-accent'
+  const searchInputClasses = 'h-8 w-full rounded-md border border-line bg-canvas/50 pl-8 pr-3 text-xs text-ink outline-none placeholder:text-muted focus:border-accent focus:ring-1 focus:ring-accent'
 
   return (
     <div className="space-y-3">
@@ -117,7 +117,7 @@ export function ColumnProfileTable({
         <div className="overflow-hidden rounded-md border border-line">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-line bg-canvas/30 text-[10px] uppercase tracking-[0.12em] text-muted">
+              <tr className="border-b border-line bg-surface-2 text-[10px] uppercase tracking-[0.12em] text-muted">
                 <th className="px-3 py-2 w-10">#</th>
                 <th className="px-3 py-2"><SortButton active={sortKey === 'name'} direction={sortDirection} label={sortKeys.name} onClick={() => handleSort('name')} /></th>
                 <th className="px-3 py-2"><SortButton active={sortKey === 'type'} direction={sortDirection} label={sortKeys.type} onClick={() => handleSort('type')} /></th>
@@ -135,7 +135,7 @@ export function ColumnProfileTable({
                 return (
                   <tr
                     className={cn(
-                      'cursor-pointer border-b border-line/70 last:border-b-0 hover:bg-elevated/40',
+                      'cursor-pointer border-b border-line/40 last:border-b-0 hover:bg-canvas',
                       isSelected && 'bg-accent/5 hover:bg-accent/10',
                     )}
                     key={column.name}

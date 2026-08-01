@@ -57,28 +57,28 @@ export function InterpretationCard({ interpretation }: InterpretationCardProps) 
       />
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className={cn('rounded-md border border-line bg-canvas/30 px-4 py-3.5')}>
+        <div className={cn('rounded-md border border-line bg-surface-2 px-4 py-3.5')}>
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Provider</p>
           <p className="mt-2 text-base font-semibold text-ink">
             <span className="font-mono">{interpretation.provider_name}</span>
           </p>
-          <p className="mt-1 text-xs text-muted">model <span className="font-mono text-ink/80">{interpretation.model_name}</span></p>
+          <p className="mt-1 text-xs text-muted">model <span className="font-mono text-ink-soft">{interpretation.model_name}</span></p>
         </div>
-        <div className="rounded-md border border-line bg-canvas/30 px-4 py-3.5">
+        <div className="rounded-md border border-line bg-surface-2 px-4 py-3.5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Overall confidence</p>
           <p className="mt-2 text-base font-semibold text-ink">
             <span className="font-mono">{(interpretation.overall_confidence * 100).toFixed(0)}%</span>
           </p>
           <p className="mt-1 text-xs text-muted">{confidenceLabel(interpretation.overall_confidence)}</p>
         </div>
-        <div className="rounded-md border border-line bg-canvas/30 px-4 py-3.5">
+        <div className="rounded-md border border-line bg-surface-2 px-4 py-3.5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Hypotheses</p>
           <p className="mt-2 text-base font-semibold text-ink">
             <span className="font-mono">{formatNumber(interpretation.hypotheses.length)}</span>
           </p>
           <p className="mt-1 text-xs text-muted">structured JSONB entries</p>
         </div>
-        <div className="rounded-md border border-line bg-canvas/30 px-4 py-3.5">
+        <div className="rounded-md border border-line bg-surface-2 px-4 py-3.5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Input findings</p>
           <p className="mt-2 text-base font-semibold text-ink">
             <span className="font-mono">{formatNumber(interpretation.input_finding_ids.length)}</span>
@@ -104,7 +104,7 @@ export function InterpretationCard({ interpretation }: InterpretationCardProps) 
           <ol className="mt-2 space-y-2">
             {interpretation.hypotheses.map((hypothesis, index) => (
               <li
-                className="rounded-md border border-line bg-canvas/30 px-4 py-3"
+                className="rounded-md border border-line bg-surface-2 px-4 py-3"
                 key={`${interpretation.interpretation_id}-${hypothesis.category}-${index}`}
               >
                 <p className="flex flex-wrap items-center gap-2 text-xs">
@@ -116,12 +116,12 @@ export function InterpretationCard({ interpretation }: InterpretationCardProps) 
                 <p className="mt-2 text-sm leading-6 text-ink">{hypothesis.summary}</p>
                 {hypothesis.affected_columns.length > 0 ? (
                   <p className="mt-2 text-[11px] text-muted">
-                    Columns: {hypothesis.affected_columns.map((column) => <span className="font-mono text-ink/80" key={column}>{` ${column} `}</span>)}
+                    Columns: {hypothesis.affected_columns.map((column) => <span className="font-mono text-ink-soft" key={column}>{` ${column} `}</span>)}
                   </p>
                 ) : null}
                 {hypothesis.supporting_finding_ids.length > 0 ? (
                   <p className="mt-1 text-[11px] text-muted">
-                    Supporting findings: {hypothesis.supporting_finding_ids.map((id) => <span className="font-mono text-ink/80" key={id}>{` ${id.slice(0, 8)}`}</span>)}
+                    Supporting findings: {hypothesis.supporting_finding_ids.map((id) => <span className="font-mono text-ink-soft" key={id}>{` ${id.slice(0, 8)}`}</span>)}
                   </p>
                 ) : null}
               </li>
@@ -132,9 +132,9 @@ export function InterpretationCard({ interpretation }: InterpretationCardProps) 
 
       <div className="mt-6 flex items-center gap-2 border-t border-line pt-4 text-xs text-muted">
         <KeyRound aria-hidden="true" size={14} />
-        <span>Interpretation id <span className="font-mono text-ink/80">{interpretation.interpretation_id.slice(0, 8)}</span></span>
+        <span>Interpretation id <span className="font-mono text-ink-soft">{interpretation.interpretation_id.slice(0, 8)}</span></span>
         <span aria-hidden="true">·</span>
-        <span>Profile <span className="font-mono text-ink/80">{interpretation.profile_id.slice(0, 8)}</span></span>
+        <span>Profile <span className="font-mono text-ink-soft">{interpretation.profile_id.slice(0, 8)}</span></span>
         <span aria-hidden="true">·</span>
         <span>Created {formatTimestamp(interpretation.created_at)}</span>
       </div>

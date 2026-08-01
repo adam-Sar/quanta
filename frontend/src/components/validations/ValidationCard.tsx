@@ -65,22 +65,22 @@ export function ValidationCard({ validation }: ValidationCardProps) {
       />
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-md border border-line bg-canvas/30 px-4 py-3.5">
+        <div className="rounded-md border border-line bg-surface-2 px-4 py-3.5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Status</p>
           <p className="mt-2 text-base font-semibold text-ink">{statusLabel}</p>
           <p className="mt-1 text-xs text-muted">{status === 'valid' ? 'previewed operation is applicable' : status === 'warning' ? 'applicable with caveats' : 'not applicable'}</p>
         </div>
-        <div className="rounded-md border border-line bg-canvas/30 px-4 py-3.5">
+        <div className="rounded-md border border-line bg-surface-2 px-4 py-3.5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Operation</p>
           <p className="mt-2 text-base font-semibold text-ink font-mono">{validation.operation_kind}</p>
           <p className="mt-1 text-xs text-muted">preview-only</p>
         </div>
-        <div className="rounded-md border border-line bg-canvas/30 px-4 py-3.5">
+        <div className="rounded-md border border-line bg-surface-2 px-4 py-3.5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Affected rows</p>
           <p className="mt-2 text-base font-semibold text-ink">{impact.affected_rows === null ? '—' : formatNumber(impact.affected_rows)}</p>
           <p className="mt-1 text-xs text-muted">projected change</p>
         </div>
-        <div className="rounded-md border border-line bg-canvas/30 px-4 py-3.5">
+        <div className="rounded-md border border-line bg-surface-2 px-4 py-3.5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Affected columns</p>
           <p className="mt-2 text-base font-semibold text-ink">{formatNumber(impact.affected_columns.length)}</p>
           <p className="mt-1 text-xs text-muted">from the bounded source frame</p>
@@ -127,7 +127,7 @@ export function ValidationCard({ validation }: ValidationCardProps) {
 
       <div className="mt-6 flex items-center gap-2 border-t border-line pt-4 text-xs text-muted">
         <KeyRound aria-hidden="true" size={14} />
-        <span>Validation id <span className="font-mono text-ink/80">{validation.validation_id.slice(0, 8)}</span></span>
+        <span>Validation id <span className="font-mono text-ink-soft">{validation.validation_id.slice(0, 8)}</span></span>
         <span aria-hidden="true">·</span>
         <span>Created {formatTimestamp(validation.created_at)}</span>
       </div>

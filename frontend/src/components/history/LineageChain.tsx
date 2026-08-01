@@ -39,7 +39,7 @@ export function LineageChain({ lineage, versionsById }: LineageChainProps) {
           title="Single version"
           action={<Badge dot tone="muted">No chain</Badge>}
         />
-        <div className="mt-4 rounded-md border border-dashed border-line bg-canvas/30 px-4 py-6 text-sm text-muted">
+        <div className="mt-4 rounded-md border border-dashed border-line bg-surface-2 px-4 py-6 text-sm text-muted">
           Upload a second version of this dataset to start the lineage chain.
         </div>
       </Panel>
@@ -67,7 +67,7 @@ export function LineageChain({ lineage, versionsById }: LineageChainProps) {
           const toLabel = describeVersionLabel(toVersion)
           return (
             <li
-              className="grid gap-2 rounded-md border border-line bg-canvas/30 px-4 py-3 sm:grid-cols-[auto_1fr_auto_1fr_auto] sm:items-center"
+              className="grid gap-2 rounded-md border border-line bg-surface-2 px-4 py-3 sm:grid-cols-[auto_1fr_auto_1fr_auto] sm:items-center"
               key={`${edge.from_version_id}-${edge.to_version_id}`}
             >
               <div className="flex items-center gap-2">
@@ -97,7 +97,7 @@ export function LineageChain({ lineage, versionsById }: LineageChainProps) {
 
       <div className="mt-6 flex items-center gap-2 text-xs text-muted">
         <Layers aria-hidden="true" size={14} />
-        <span>Edges are derived from <code className="font-mono text-ink/80">DatasetVersion.version_number</code> and <code className="font-mono text-ink/80">created_at</code>.</span>
+        <span>Edges are derived from <code className="font-mono text-ink-soft">DatasetVersion.version_number</code> and <code className="font-mono text-ink-soft">created_at</code>.</span>
       </div>
     </Panel>
   )

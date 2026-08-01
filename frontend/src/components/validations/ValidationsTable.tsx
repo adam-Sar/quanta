@@ -26,7 +26,7 @@ function SortButton({ active, direction, label, onClick }: { active: boolean; di
   return (
     <button className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" onClick={onClick} type="button">
       {label}
-      <ArrowUpDown aria-hidden="true" className={active ? 'text-accent' : 'text-muted/60'} size={13} />
+      <ArrowUpDown aria-hidden="true" className={active ? 'text-accent' : 'text-muted'} size={13} />
       {active ? <span className="sr-only">{direction === 'asc' ? 'ascending' : 'descending'}</span> : null}
     </button>
   )
@@ -123,7 +123,7 @@ export function ValidationsTable({
       <div className="overflow-x-auto">
         <table className="min-w-[920px] w-full text-left text-xs">
           <thead>
-            <tr className="border-b border-line bg-canvas/30 text-[10px] uppercase tracking-[0.12em] text-muted">
+            <tr className="border-b border-line bg-surface-2 text-[10px] uppercase tracking-[0.12em] text-muted">
               <th className="px-3 py-2">Validation id</th>
               <th className="px-3 py-2"><SortButton active={sortKey === 'status'} direction={sortDirection} label="Status" onClick={() => handleSort('status')} /></th>
               <th className="px-3 py-2"><SortButton active={sortKey === 'operation'} direction={sortDirection} label="Operation" onClick={() => handleSort('operation')} /></th>
@@ -139,7 +139,7 @@ export function ValidationsTable({
               return (
                 <tr
                   className={cn(
-                    'cursor-pointer border-b border-line/70 last:border-b-0 hover:bg-elevated/40',
+                    'cursor-pointer border-b border-line/40 last:border-b-0 hover:bg-canvas',
                     isSelected && 'bg-accent/5 hover:bg-accent/10',
                   )}
                   key={row.validation_id}
@@ -147,7 +147,7 @@ export function ValidationsTable({
                 >
                   <td className="px-3 py-2 font-mono text-ink">
                     <p>{row.validation_id.slice(0, 8)}</p>
-                    <p className="mt-0.5 text-[10px] text-muted/70">{row.formula_version}</p>
+                    <p className="mt-0.5 text-[10px] text-muted">{row.formula_version}</p>
                   </td>
                   <td className="px-3 py-2">
                     <Badge dot tone={STATUS_TONE[row.status]}>{STATUS_LABEL[row.status]}</Badge>

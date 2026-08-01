@@ -18,7 +18,7 @@ interface MetricBlockProps {
 
 function MetricBlock({ label, value, caption }: MetricBlockProps) {
   return (
-    <div className="rounded-md border border-line bg-canvas/30 px-4 py-3.5">
+    <div className="rounded-md border border-line bg-surface-2 px-4 py-3.5">
       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">{label}</p>
       <p className="mt-2 text-base font-semibold text-ink">{value}</p>
       {caption ? <p className="mt-1 text-xs text-muted">{caption}</p> : null}
@@ -120,14 +120,14 @@ export function FindingDetailCard({ finding }: FindingDetailCardProps) {
       </div>
 
       {ratio !== null ? (
-        <div className="mt-3 rounded-md border border-line bg-canvas/20 p-4">
+        <div className="mt-3 rounded-md border border-line bg-surface-2 p-4">
           <div className="flex items-center gap-2 text-ink">
             <Sigma aria-hidden="true" size={14} />
             <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Value / threshold ratio</h3>
           </div>
           <p className="mt-2 font-mono text-base text-ink">{formatValue(ratio)}×</p>
           <p className="mt-1 text-xs text-muted">
-            The observed value is {formatValue(ratio)}× the configured threshold for metric <span className="font-mono text-ink/80">{finding.metric}</span>.
+            The observed value is {formatValue(ratio)}× the configured threshold for metric <span className="font-mono text-ink-soft">{finding.metric}</span>.
           </p>
         </div>
       ) : null}
@@ -158,21 +158,21 @@ export function FindingDetailCard({ finding }: FindingDetailCardProps) {
           <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Detail payload</h3>
         </div>
         {detailEntries.length === 0 ? (
-          <p className="mt-3 rounded-md border border-dashed border-line bg-canvas/30 px-4 py-3 text-sm text-muted">
+          <p className="mt-3 rounded-md border border-dashed border-line bg-surface-2 px-4 py-3 text-sm text-muted">
             The backend did not record any structured detail for this finding.
           </p>
         ) : (
           <div className="mt-3 overflow-hidden rounded-md border border-line">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-line bg-canvas/30 text-[10px] uppercase tracking-[0.12em] text-muted">
+                <tr className="border-b border-line bg-surface-2 text-[10px] uppercase tracking-[0.12em] text-muted">
                   <th className="px-4 py-2">Key</th>
                   <th className="px-4 py-2">Value</th>
                 </tr>
               </thead>
               <tbody>
                 {detailEntries.map(([key, value]) => (
-                  <tr className="border-b border-line/70 last:border-b-0" key={key}>
+                  <tr className="border-b border-line/40 last:border-b-0" key={key}>
                     <td className="px-4 py-2 font-mono text-muted">{key}</td>
                     <td className="px-4 py-2 font-mono text-ink">{formatDetailValue(value)}</td>
                   </tr>
@@ -185,11 +185,11 @@ export function FindingDetailCard({ finding }: FindingDetailCardProps) {
 
       <div className="mt-6 flex items-center gap-2 border-t border-line pt-4 text-xs text-muted">
         <KeyRound aria-hidden="true" size={14} />
-        <span>Finding id <span className="font-mono text-ink/80">{finding.finding_id.slice(0, 8)}</span></span>
+        <span>Finding id <span className="font-mono text-ink-soft">{finding.finding_id.slice(0, 8)}</span></span>
         <span aria-hidden="true">·</span>
-        <span>Profile <span className="font-mono text-ink/80">{finding.profile_id.slice(0, 8)}</span></span>
+        <span>Profile <span className="font-mono text-ink-soft">{finding.profile_id.slice(0, 8)}</span></span>
         <span aria-hidden="true">·</span>
-        <span>Version <span className="font-mono text-ink/80">{finding.dataset_version_id.slice(0, 8)}</span></span>
+        <span>Version <span className="font-mono text-ink-soft">{finding.dataset_version_id.slice(0, 8)}</span></span>
       </div>
     </Panel>
   )
