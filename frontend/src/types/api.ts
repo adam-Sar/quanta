@@ -321,3 +321,37 @@ export interface DatasetVersionListResponse {
   items: DatasetVersionResponse[]
   pagination: Pagination
 }
+
+export type HypothesisCategory =
+  | 'schema_drift'
+  | 'data_quality'
+  | 'pipeline'
+  | 'upstream_source'
+  | 'other'
+
+export interface HypothesisResponse {
+  category: HypothesisCategory
+  summary: string
+  affected_columns: string[]
+  supporting_finding_ids: string[]
+  confidence: number
+}
+
+export interface AIInterpretationResponse {
+  interpretation_id: string
+  dataset_id: string
+  profile_id: string
+  provider_name: string
+  model_name: string
+  formula_version: string
+  summary: string
+  overall_confidence: number
+  input_finding_ids: string[]
+  hypotheses: HypothesisResponse[]
+  created_at: string
+}
+
+export interface AIInterpretationListResponse {
+  items: AIInterpretationResponse[]
+  pagination: Pagination
+}

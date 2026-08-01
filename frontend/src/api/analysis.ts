@@ -1,5 +1,7 @@
 import { request } from './client'
 import type {
+  AIInterpretationListResponse,
+  AIInterpretationResponse,
   DatasetProfileListResponse,
   DatasetProfileResponse,
   DetectionRunResponse,
@@ -104,5 +106,34 @@ export function createDatasetComparison(
   return request<HistoryComparisonResponse>(`/datasets/${datasetId}/comparisons`, {
     method: 'POST',
     body: JSON.stringify(payload),
+  })
+}
+
+export interface ListDatasetInterpretationsParams {
+  page?: number
+  pageSize?: number
+}
+
+export function listDatasetInterpretations(
+  datasetId: string,
+  { page = 1, pageSize = 50 }: ListDatasetInterpretationsParams = {},
+): Promise<AIInterpretationListResponse> {
+  const searchParams = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  })
+  return request<AIInterpretationListResponse>(`/datasets/${datasetId}/interpretations?${searchParams.toString()}`)
+}
+
+export function getDatasetInterpretation(
+  datasetId: string,
+  interpretationId: string,
+): Promise<AIInterpretationResponse> {
+  return request<AIInterpretationResponse>(`/datasets/${datasetId}/interpretations/${interpretationId}`)
+}
+
+export function createDatasetInterpretation(datasetId: string): Promise<AIInterpretationResponse> {
+  return request<AIInterpretationResponse>(`/datasets/${datasetId}/interpretations`, {
+    method: 'POST',
   })
 }
