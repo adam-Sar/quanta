@@ -452,18 +452,14 @@ function FindingRow({ finding }: { finding: Finding }) {
   const title = findingTitle(finding.kind, finding.column_name);
   const subline = findingSubline(finding.kind, finding.value, finding.threshold);
   return (
-    /* Each finding is its own block: subtle top + bottom border on a
-       white card, rounded corners, soft hover. The severity stripe
-       protrudes vertically beyond the row's top and bottom edges
-       (-top-1 / -bottom-1) and uses rounded-t-full + rounded-b-full
-       so its top and bottom curl INWARD into the row edges, while
-       the sides stay flat. The horizontal pill shape is wider
-       (w-1.5) so the curve reads clearly at a glance. */
-    <li className="group relative overflow-visible rounded-xl border border-ink-100 bg-white px-4 py-3 transition-colors hover:border-ink-200 hover:bg-ink-50/40">
+    /* Keep the entire severity rail inside the row's border. Its curved
+       side faces the outer-left edge, while the content-facing side
+       stays flat—the flipped treatment shown in the reference. */
+    <li className="group relative overflow-hidden rounded-xl border border-ink-100 bg-white px-4 py-3.5 transition-colors hover:border-ink-200 hover:bg-ink-50/40">
       <span
         aria-hidden
         className={cn(
-          "absolute -left-1 -top-1 -bottom-1 w-1.5 rounded-t-full rounded-b-full",
+          "absolute bottom-px left-px top-px w-1 rounded-l-full",
           severityStripe(finding.severity),
         )}
       />
@@ -472,7 +468,7 @@ function FindingRow({ finding }: { finding: Finding }) {
           kind={finding.kind}
           severity={finding.severity}
           bare
-          size={18}
+          size={28}
         />
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold text-ink-900">{title}</div>
