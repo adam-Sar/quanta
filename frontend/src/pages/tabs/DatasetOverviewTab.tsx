@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -67,11 +67,11 @@ export function DatasetOverviewTab() {
   const topCompleteness = useMemo(() => {
     if (!profile || profile.columns.length === 0) return 0;
     const total = profile.columns.reduce(
-      (acc, c) => acc + (c.metrics.row_count - c.metrics.null_count),
+      (acc, c) => acc + c.metrics.non_null_count,
       0,
     );
     const samples = profile.columns.reduce(
-      (acc, c) => acc + c.metrics.row_count,
+      (acc, c) => acc + c.metrics.sample_size,
       0,
     );
     return samples > 0 ? total / samples : 0;
@@ -181,7 +181,7 @@ function ColumnSummaryCard({
     return profile.columns.filter((c) => !q || c.name.toLowerCase().includes(q));
   }, [profile, search]);
 
-  const formatVal = (v: number | null | string) => (v === null || v === undefined ? "�" : String(v));
+  const formatVal = (v: number | null | string) => (v === null || v === undefined ? "ï¿½" : String(v));
 
   return (
     <Card className="lg:col-span-2">
@@ -192,12 +192,12 @@ function ColumnSummaryCard({
           description={profile ? `Sampled ${formatNumber(profile.sample_size)} rows` : "Profile not yet run"}
         />
         <div className="w-72">
-          <SearchInput value={search} onChange={setSearch} placeholder="Search columns�" />
+          <SearchInput value={search} onChange={setSearch} placeholder="Search columnsï¿½" />
         </div>
       </div>
       <div className="mt-4 -mx-5">
         {!profile ? (
-          <LoadingState label="Loading profile�" />
+          <LoadingState label="Loading profileï¿½" />
         ) : (
           <table className="data-table">
             <thead>
@@ -219,10 +219,10 @@ function ColumnSummaryCard({
                   <td><span className="badge-muted">{c.metrics.physical_type}</span></td>
                   <td className="tnum">{(c.metrics.null_rate * 100).toFixed(2)}%</td>
                   <td className="tnum">{(c.metrics.distinct_rate * 100).toFixed(2)}%</td>
-                  <td className="tnum font-mono text-xs">{formatVal(c.metrics.numeric.min ?? c.metrics.datetime.min ?? null)}</td>
-                  <td className="tnum font-mono text-xs">{formatVal(c.metrics.numeric.max ?? c.metrics.datetime.max ?? null)}</td>
+                  <td className="tnum font-mono text-xs">{formatVal(c.metrics.numeric.min ?? c.metrics.temporal.min ?? null)}</td>
+                  <td className="tnum font-mono text-xs">{formatVal(c.metrics.numeric.max ?? c.metrics.temporal.max ?? null)}</td>
                   <td className="font-mono text-xs text-ink-500">
-                    {c.metrics.string.top_values.slice(0, 3).map((t) => t.value).join(", ") || "�"}
+                    {c.metrics.top_values.slice(0, 3).map((t) => t.value).join(", ") || "ï¿½"}
                   </td>
                   <td className="tnum">{findingCols[c.name] ?? 0}</td>
                 </tr>
@@ -277,7 +277,7 @@ function TopFindingsCard({ findings }: { findings: Finding[] }) {
                   <td className="font-medium text-ink-900">{f.description}</td>
                   <td className="text-ink-500">{kindLabel(f.kind)}</td>
                   <td><span className={severityClass(f.severity)}>{f.severity}</span></td>
-                  <td className="font-mono text-xs">{f.column_name ?? "�"}</td>
+                  <td className="font-mono text-xs">{f.column_name ?? "ï¿½"}</td>
                 </tr>
               ))}
             </tbody>
@@ -314,7 +314,7 @@ function QualityOverTimeCard({ datasetId }: { datasetId: string }) {
       />
       <div className="mt-2">
         {isLoading ? (
-          <LoadingState label="Loading scores�" />
+          <LoadingState label="Loading scoresï¿½" />
         ) : error ? (
           <EmptyState title="Unable to load scores" />
         ) : series[0].values.length === 0 ? (
@@ -369,7 +369,7 @@ function AIInterpretationCard({
           <Stat icon={<Tag className="h-3.5 w-3.5" />} label="Affected columns" value="5" />
           <Stat icon={<Lightbulb className="h-3.5 w-3.5" />} label="Top recommendation" value="trim whitespace" />
           <Stat icon={<GitBranch className="h-3.5 w-3.5" />} label="Lineage delta" value="12 new findings" />
-          <Stat icon={<Eye className="h-3.5 w-3.5" />} label="Confidence" value={confidence !== undefined ? formatPercent(confidence) : "�"} />
+          <Stat icon={<Eye className="h-3.5 w-3.5" />} label="Confidence" value={confidence !== undefined ? formatPercent(confidence) : "ï¿½"} />
         </div>
       </div>
     </Card>
@@ -387,3 +387,5 @@ function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; va
     </div>
   );
 }
+
+

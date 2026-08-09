@@ -70,49 +70,49 @@ export interface DatasetVersionListResponse {
 }
 /* ---------- Profiles ---------- */
 
-export type ColumnType = "numeric" | "string" | "datetime" | "boolean" | "unknown";
+export interface TopValue {
+  value: string;
+  count: number;
+  frequency: number;
+}
 
-export interface ColumnNumericMetrics {
+export interface NumericMetrics {
   min: number | null;
   max: number | null;
   mean: number | null;
+  median: number | null;
   std: number | null;
-  p25: number | null;
-  p50: number | null;
-  p75: number | null;
-  zero_rate: number | null;
-  negative_rate: number | null;
+  sum: number | null;
 }
 
-export interface ColumnStringMetrics {
-  min_length: number | null;
-  max_length: number | null;
-  avg_length: number | null;
-  top_values: Array<{ value: string; count: number }>;
-}
-
-export interface ColumnDatetimeMetrics {
+export interface TemporalMetrics {
   min: string | null;
   max: string | null;
-  future_rate: number | null;
+}
+
+export interface StringLengthMetrics {
+  min: number | null;
+  max: number | null;
+  mean: number | null;
 }
 
 export interface ColumnMetrics {
   physical_type: string;
-  logical_type: ColumnType;
-  row_count: number;
+  sample_size: number;
+  non_null_count: number;
   null_count: number;
   null_rate: number;
   distinct_count: number;
   distinct_rate: number;
-  numeric: ColumnNumericMetrics;
-  string: ColumnStringMetrics;
-  datetime: ColumnDatetimeMetrics;
+  top_values: TopValue[];
+  numeric: NumericMetrics;
+  temporal: TemporalMetrics;
+  string_length: StringLengthMetrics;
 }
 
 export interface DatasetProfileColumn {
   name: string;
-  ordinal: number;
+  ordinal_position: number;
   metrics: ColumnMetrics;
 }
 
@@ -122,11 +122,10 @@ export interface DatasetProfile {
   dataset_version_id: string;
   sample_size: number;
   sampled: "sampled" | "full";
-  row_count: number;
-  column_count: number;
-  columns: DatasetProfileColumn[];
-  generated_at: string;
+  started_at: string;
   completed_at: string;
+  duration_ms: number;
+  columns: DatasetProfileColumn[];
 }
 
 export interface DatasetProfileListResponse {
@@ -179,13 +178,15 @@ export interface ScoreComponentBucket {
 }
 
 export interface PerFindingScore {
-  finding_id: string;
   kind: FindingKind;
   severity: FindingSeverity;
-  column: string | null;
-  contribution: number;
+  column_name: string | null;
+  metric: string;
+  value: number;
+  threshold: number;
   detection_confidence: number;
   data_error_confidence: number;
+  penalty: number;
 }
 
 export interface ScoreComponents {
