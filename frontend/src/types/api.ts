@@ -25,22 +25,38 @@ export interface HealthReady {
 
 /* ---------- Datasets ---------- */
 
-export type DatasetStatus = "active" | "archived" | "draft";
+export type DatasetVersionStatus = "uploading" | "stored" | "failed";
+
+export interface DatasetColumn {
+  name: string;
+  ordinal_position: number;
+  physical_type: string;
+  logical_type: string;
+  nullable: boolean | null;
+}
+
+export interface DatasetVersion {
+  id: string;
+  version_number: number;
+  format: string;
+  status: DatasetVersionStatus;
+  original_filename: string;
+  media_type: string | null;
+  size_bytes: number;
+  row_count: number;
+  column_count: number;
+  content_sha256: string;
+  created_at: string;
+  columns: DatasetColumn[];
+}
 
 export interface Dataset {
   id: string;
   name: string;
-  description: string;
-  status: DatasetStatus;
-  owner: string;
-  latest_version: number;
-  latest_profile_id: string | null;
-  latest_score: number | null;
-  latest_grade: string | null;
-  latest_score_created_at: string | null;
+  description: string | null;
   created_at: string;
   updated_at: string;
-  current_version?: DatasetVersion;
+  current_version: DatasetVersion | null;
 }
 
 export interface DatasetListResponse {
@@ -48,20 +64,9 @@ export interface DatasetListResponse {
   pagination: Pagination;
 }
 
-export interface DatasetVersion {
-  id: string;
-  dataset_id: string;
-  version_number: number;
-  file_type: string;
-  file_size_bytes: number;
-  row_count: number | null;
-  column_count: number | null;
-  sha256: string;
-  uri: string;
-  created_at: string;
-  // Frontend-friendly aliases (resolved from `file_type` / `file_size_bytes` by the API client)
-  format?: string;
-  size_bytes?: number;
+export interface DatasetVersionListResponse {
+  items: DatasetVersion[];
+  pagination: Pagination;
 }
 /* ---------- Profiles ---------- */
 

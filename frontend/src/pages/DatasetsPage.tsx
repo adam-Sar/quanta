@@ -1,12 +1,7 @@
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  ArrowUpDown,
-  FileUp,
-  Plus,
-  Inbox,
-} from "lucide-react";
+import { ArrowUpDown, FileUp, Plus, Inbox } from "lucide-react";
 
 import { Topbar } from "@/components/layout/Topbar";
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -20,9 +15,7 @@ import { UploadDatasetModal } from "@/components/datasets/UploadDatasetModal";
 import {
   createDataset,
   listDatasets,
-  type CreateDatasetInput,
 } from "@/api/datasets";
-import type { Dataset, DatasetListResponse } from "@/types/api";
 import { formatBytes, formatNumber, formatRelativeFromNow } from "@/lib/utils";
 
 type SortField = "updated_at" | "name" | "rows" | "size";
@@ -93,10 +86,10 @@ export function DatasetsPage() {
     );
   };
 
-  const header = (
+  const nameHeader = (
     <button
       type="button"
-      onClick={() => toggleSort}
+      onClick={() => toggleSort("name")}
       className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-500 hover:text-ink-700"
     >
       <span>Name</span>
@@ -104,68 +97,14 @@ export function DatasetsPage() {
     </button>
   );
 
-  return <DatasetsBody
-    data={data}
-    isLoading={isLoading}
-    error={error}
-    isRefetching={isRefetching}
-    search={search}
-    setSearch={setSearch}
-    page={page}
-    setPage={setPage}
-    open={open}
-    setOpen={setOpen}
-    rows={rows}
-    header={header}
-    onRefresh={() => refetch()}
-    onCreate={(input) => create.mutate(input)}
-    createPending={create.isPending}
-    createError={create.error}
-  />;
-
-interface DatasetsBodyProps {
-  data: DatasetListResponse | undefined;
-  isLoading: boolean;
-  error: unknown;
-  isRefetching: boolean;
-  search: string;
-  setSearch: (v: string) => void;
-  page: number;
-  setPage: (p: number) => void;
-  open: boolean;
-  setOpen: (o: boolean) => void;
-  rows: Dataset[];
-  header: React.ReactNode;
-  onRefresh: () => void;
-  onCreate: (input: CreateDatasetInput) => void;
-  createPending: boolean;
-  createError: unknown;
-}
-
-function DatasetsBody(props: DatasetsBodyProps) {
-  const {
-    data,
-    isLoading,
-    error,
-    isRefetching,
-    search,
-    setSearch,
-    setPage,
-    open,
-    setOpen,
-    rows,
-    header,
-    onRefresh,
-    onCreate,
-    createPending,
-    createError,
-  } = props;
+  const activeCount = (data?.items ?? []).filter((d) => d.current_version)
+    .length;
 
   return (
     <>
       <Topbar
         crumbs={[{ label: "Datasets" }]}
-        onRefresh={onRefresh}
+        onRefresh={() => refetch()}
         isRefreshing={isRefetching}
         primaryAction={
           <button onClick={() => setOpen(true)} className="btn-primary">
@@ -181,11 +120,11 @@ function DatasetsBody(props: DatasetsBodyProps) {
 
       <div className="space-y-4 p-6">
         <Card>
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <CardHeader
               eyebrow="Inventory"
               title="All datasets"
-              description={`${formatNumber(data?.pagination.total_items ?? 0)} total · ${formatNumber(data?.items.filter((d) => d.current_version).length ?? 0)} active`}
+              description={`${formatNumber(data?.pagination.total_items ?? 0)} total · ${formatNumber(activeCount)} active`}
             />
             <div className="w-full max-w-xs">
               <SearchInput
@@ -200,7 +139,10 @@ function DatasetsBody(props: DatasetsBodyProps) {
             {isLoading ? (
               <LoadingState label="Loading datasets…" />
             ) : error ? (
-              <ErrorState error={error} onRetry={onRefresh} />
+              <ErrorState
+                error={error as Error}
+                onRetry={() => refetch()}
+              />
             ) : rows.length === 0 ? (
               <EmptyState
                 icon={<Inbox className="h-5 w-5" />}
@@ -217,7 +159,7 @@ function DatasetsBody(props: DatasetsBodyProps) {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>{header}</th>
+                    <th>{nameHeader}</th>
                     <th>Format</th>
                     <th>Rows</th>
                     <th>Columns</th>
@@ -238,8 +180,10 @@ function DatasetsBody(props: DatasetsBodyProps) {
                             format={d.current_version?.format ?? "csv"}
                             size={36}
                           />
-                          <div>
-                            <div className="font-medium text-ink-900">{d.name}</div>
+                          <div className="min-w-0">
+                            <div className="truncate font-medium text-ink-900">
+                              {d.name}
+                            </div>
                             {d.description && (
                               <div className="line-clamp-1 text-xs text-ink-500">
                                 {d.description}
@@ -249,7 +193,9 @@ function DatasetsBody(props: DatasetsBodyProps) {
                         </Link>
                       </td>
                       <td>
-                        <Badge>{(d.current_version?.format ?? "—").toUpperCase()}</Badge>
+                        <Badge>
+                          {(d.current_version?.format ?? "—").toUpperCase()}
+                        </Badge>
                       </td>
                       <td className="tnum">
                         {formatNumber(d.current_version?.row_count)}
@@ -286,12 +232,13 @@ function DatasetsBody(props: DatasetsBodyProps) {
       <UploadDatasetModal
         open={open}
         onClose={() => setOpen(false)}
-        onSubmit={onCreate}
-        isSubmitting={createPending}
-        error={createError}
+        onSubmit={(input) => create.mutate(input)}
+        isSubmitting={create.isPending}
+        error={create.error as Error | null}
       />
     </>
   );
 }
 
-}
+
+

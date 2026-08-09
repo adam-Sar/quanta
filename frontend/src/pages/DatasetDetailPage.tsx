@@ -1,14 +1,13 @@
-import { useParams, Outlet } from "react-router-dom";
+﻿import { useParams, Outlet } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
 import { MoreHorizontal } from "lucide-react";
 
 import { Topbar, useDatasetCrumbs } from "@/components/layout/Topbar";
 import { TabBar } from "@/components/ui/TabBar";
-import { Trend } from "@/components/ui/Trend";
 import { FileIcon } from "@/components/ui/FileIcon";
 import { Sparkline } from "@/components/ui/Sparkline";
-import { LoadingState, ErrorState } from "@/components/ui/States";
+import { LoadingState, ErrorState, EmptyState } from "@/components/ui/States";
+import { Card, CardHeader } from "@/components/ui/Card";
 import { listFindings } from "@/api/findings";
 import { listScores } from "@/api/scores";
 import { getDataset } from "@/api/datasets";
@@ -23,25 +22,30 @@ import {
 export function DatasetDetailPage() {
   const { datasetId } = useParams<{ datasetId: string }>();
   const crumbs = useDatasetCrumbs();
-  const { data: dataset, isLoading, error, refetch, isRefetching } = useQuery({
+
+  const {
+    data: dataset,
+    isLoading,
+    error,
+    refetch,
+    isRefetching,
+  } = useQuery({
     queryKey: ["dataset", datasetId],
     queryFn: () => getDataset(datasetId!),
     enabled: !!datasetId,
   });
 
-  useEffect(() => {
-    if (!datasetId) return;
-  }, [datasetId]);
-
   const { data: scores } = useQuery({
     queryKey: ["scores", datasetId],
     queryFn: () => listScores(datasetId!, 1, 50),
     enabled: !!datasetId,
+    retry: false,
   });
   const { data: findings } = useQuery({
     queryKey: ["findings", datasetId],
     queryFn: () => listFindings(datasetId!, 1, 50),
     enabled: !!datasetId,
+    retry: false,
   });
   const { data: profile } = useQuery({
     queryKey: ["profile", datasetId],
@@ -53,6 +57,7 @@ export function DatasetDetailPage() {
     queryKey: ["lineage", datasetId],
     queryFn: () => getLineage(datasetId!),
     enabled: !!datasetId,
+    retry: false,
   });
 
   if (isLoading) {
@@ -62,6 +67,7 @@ export function DatasetDetailPage() {
       </div>
     );
   }
+
   if (error || !dataset) {
     return (
       <div className="p-6">
@@ -75,20 +81,42 @@ export function DatasetDetailPage() {
   }
 
   const v = dataset.current_version;
-  const score = scores?.items[0];
-  const spark = (scores?.items ?? [])
+  const score = scores?.items?.[0];
+  const scoreSeries = (scores?.items ?? [])
     .slice(0, 24)
     .reverse()
     .map((s) => s.score);
-  const trend = spark.length >= 2 ? spark[spark.length - 1] - spark[0] : 0;
+  const trend =
+    scoreSeries.length >= 2
+      ? scoreSeries[scoreSeries.length - 1] - scoreSeries[0]
+      : 0;
 
   const tabs = [
     { label: "Overview", to: `/datasets/${dataset.id}` },
-    { label: "Profile", to: `/datasets/${dataset.id}/profile`, pill: profile?.columns.length },
-    { label: "Findings", to: `/datasets/${dataset.id}/findings`, pill: findings?.pagination.total_items },
-    { label: "Quality", to: `/datasets/${dataset.id}/quality`, pill: score?.score },
-    { label: "Recommendations", to: `/datasets/${dataset.id}/recommendations` },
-    { label: "History", to: `/datasets/${dataset.id}/history`, pill: lineage?.edges.length },
+    {
+      label: "Profile",
+      to: `/datasets/${dataset.id}/profile`,
+      pill: profile?.columns.length,
+    },
+    {
+      label: "Findings",
+      to: `/datasets/${dataset.id}/findings`,
+      pill: findings?.pagination.total_items,
+    },
+    {
+      label: "Quality",
+      to: `/datasets/${dataset.id}/quality`,
+      pill: score?.score.toFixed(0),
+    },
+    {
+      label: "Recommendations",
+      to: `/datasets/${dataset.id}/recommendations`,
+    },
+    {
+      label: "History",
+      to: `/datasets/${dataset.id}/history`,
+      pill: lineage?.edges.length,
+    },
   ];
 
   return (
@@ -112,11 +140,15 @@ export function DatasetDetailPage() {
       {/* Hero / breadcrumb-band */}
       <div className="px-6 pt-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-4">
-            <FileIcon format={v?.format ?? "csv"} size={56} />
-            <div>
+          <div className="flex min-w-0 items-center gap-4">
+            <FileIcon
+              format={v?.format ?? "csv"}
+              size={56}
+              className="shrink-0"
+            />
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-semibold tracking-tight text-ink-900">
+                <h1 className="truncate text-2xl font-semibold tracking-tight text-ink-900">
                   {dataset.name}
                 </h1>
                 <span className="rounded-md border border-ink-200 px-1.5 py-0.5 text-[11px] font-medium text-ink-700">
@@ -124,13 +156,24 @@ export function DatasetDetailPage() {
                 </span>
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-500">
-                <span>{formatNumber(v?.row_count)} rows</span>
+                <span>
+                  {v
+                    ? `${formatNumber(v.row_count)} ${v.row_count === 1 ? "row" : "rows"}`
+                    : "No version"}
+                </span>
                 <span className="text-ink-300">·</span>
-                <span>{formatNumber(v?.column_count)} columns</span>
+                <span>
+                  {v
+                    ? `${formatNumber(v.column_count)} ${v.column_count === 1 ? "column" : "columns"}`
+                    : "—"}
+                </span>
                 <span className="text-ink-300">·</span>
-                <span>{formatBytes(v?.size_bytes)}</span>
+                <span>{v ? formatBytes(v.size_bytes) : "—"}</span>
                 <span className="text-ink-300">·</span>
-                <span>Ingested {formatRelativeFromNow(v?.created_at)}</span>
+                <span>
+                  Ingested{" "}
+                  {v ? formatRelativeFromNow(v.created_at) : "—"}
+                </span>
               </div>
             </div>
           </div>
@@ -140,15 +183,24 @@ export function DatasetDetailPage() {
               <div className="label-eyebrow">Quality score</div>
               <div className="mt-1 text-3xl font-semibold tnum text-ink-900">
                 {score ? score.score.toFixed(0) : "—"}
-                <span className="text-base font-medium text-ink-400">/100</span>
+                <span className="text-base font-medium text-ink-400">
+                  /100
+                </span>
               </div>
-              <div className="mt-1 text-xs">
-                <Trend delta={trend} suffix=" pts" />
-                <span className="ml-1 text-ink-500">vs last run</span>
+              <div className="mt-1 flex items-center justify-end gap-1 text-xs">
+                <span className="text-ink-700">
+                  {trend > 0 ? "+" : ""}
+                  {trend.toFixed(0)} pts
+                </span>
+                <span className="text-ink-500">vs last run</span>
               </div>
             </div>
             <Sparkline
-              values={spark.length ? spark : [70, 72, 75, 78, 80, 82, 85, 87]}
+              values={
+                scoreSeries.length
+                  ? scoreSeries
+                  : [70, 72, 75, 78, 80, 82, 85, 87]
+              }
               height={56}
               className="w-44"
             />
@@ -160,8 +212,28 @@ export function DatasetDetailPage() {
         </div>
       </div>
 
+      {/* Outlet area. If the dataset has no version yet, show an
+          onboarding card instead of letting the child tabs render empty. */}
       <div className="px-6 pb-6 pt-4">
-        <Outlet context={{ dataset, profile, score, findings, scores }} />
+        {v ? (
+          <Outlet
+            context={{ dataset, profile, score, findings, scores }}
+          />
+        ) : (
+          <Card>
+            <CardHeader
+              eyebrow="No version"
+              title="This dataset doesn't have a version yet"
+              description="Upload a CSV or Parquet file to create the first version of this dataset."
+            />
+            <div className="mt-4">
+              <EmptyState
+                title="Nothing to analyse"
+                description="Once a version is available, profiling, scoring, and detection will run against it."
+              />
+            </div>
+          </Card>
+        )}
       </div>
     </>
   );
