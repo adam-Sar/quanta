@@ -74,6 +74,23 @@ class ProfilingService:
         dataset_version: DatasetVersion,
     ) -> DatasetProfile:
         path = self._resolve_storage_path(dataset_version)
+        # Surface the input file size so a slow Docker volume mount is
+        # obvious in the api container stdout (this is the usual
+        # culprit when "profiling takes forever" on Windows / WSL2).
+        try:
+            file_bytes = path.stat().st_size
+        except OSError:
+            file_bytes = -1
+        logger.info(
+            "profile_run_started",
+            extra={
+                "dataset_id": str(dataset_version.dataset_id),
+                "dataset_version_id": str(dataset_version.id),
+                "format": dataset_version.format,
+                "file_bytes": file_bytes,
+                "sample_size": self.settings.profile_default_sample_rows,
+            },
+        )
         started = time.perf_counter()
         try:
             result = self.profiler.profile(
@@ -131,6 +148,22 @@ class ProfilingService:
         except Exception:
             self.session.rollback()
             raise
+
+        # Mirror the *_run_completed pattern used by scoring,
+        # detection, and recommendations so operators have a single
+        # tail command to confirm a profile run actually finished.
+        logger.info(
+            "profile_run_completed",
+            extra={
+                "dataset_id": str(dataset_version.dataset_id),
+                "dataset_version_id": str(dataset_version.id),
+                "profile_id": str(profile_id),
+                "duration_ms": duration_ms,
+                "sample_size": result.sample_size,
+                "sampled": result.sampled.value,
+                "column_count": len(result.columns),
+            },
+        )
 
         return profile
 
