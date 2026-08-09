@@ -1,109 +1,115 @@
-import type { LucideIcon } from 'lucide-react'
-import { NavLink } from 'react-router-dom'
+import { NavLink } from "react-router-dom";
+import {
+  Activity,
+  Brain,
+  Database,
+  GitBranch,
+  Hexagon,
+  History,
+  Lightbulb,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Tag,
+} from "lucide-react";
 
-export interface NavigationItem {
-  label: string
-  to: string
-  icon: LucideIcon
+import { cn } from "@/lib/utils";
+
+interface NavItem {
+  label: string;
+  to: string;
+  icon: React.ComponentType<{ className?: string }>;
 }
 
-interface SidebarProps {
-  items: NavigationItem[]
-  isOpen: boolean
-  serviceState: 'checking' | 'ready' | 'degraded'
-  onNavigate: () => void
-}
+const PRIMARY: NavItem[] = [
+  { label: "Overview", to: "/", icon: Activity },
+  { label: "Datasets", to: "/datasets", icon: Database },
+  { label: "Quality", to: "/quality", icon: ShieldCheck },
+  { label: "Findings", to: "/findings", icon: Search },
+  { label: "Recommendations", to: "/recommendations", icon: Lightbulb },
+  { label: "AI", to: "/ai", icon: Brain },
+];
 
-function QuantaMark() {
-  // 4x3 dot grid in sky blue, matching the Metabase brand mark
+const SECONDARY: NavItem[] = [
+  { label: "Jobs", to: "/jobs", icon: Tag },
+  { label: "History", to: "/history", icon: History },
+  { label: "Lineage", to: "/lineage", icon: GitBranch },
+  { label: "Limits", to: "/limits", icon: Sparkles },
+];
+
+export function Sidebar() {
   return (
-    <span
-      aria-hidden="true"
-      className="grid h-8 w-8 shrink-0 grid-cols-4 grid-rows-3 gap-[2px] place-items-center"
-    >
-      {Array.from({ length: 12 }, (_, i) => (
-        <span
-          key={i}
-          className="h-1 w-1 rounded-full bg-[rgb(var(--color-accent))]"
-        />
-      ))}
-    </span>
-  )
-}
-
-export function Sidebar({ items, isOpen, serviceState, onNavigate }: SidebarProps) {
-  const serviceLabel =
-    serviceState === 'ready' ? 'API ready' : serviceState === 'degraded' ? 'API unreachable' : 'Checking…'
-  const serviceTone: 'success' | 'warning' | 'muted' =
-    serviceState === 'ready' ? 'success' : serviceState === 'degraded' ? 'warning' : 'muted'
-
-  return (
-    <>
-      {isOpen ? (
-        <button
-          aria-label="Close navigation"
-          className="fixed inset-0 z-30 bg-slate-900/30 lg:hidden"
-          onClick={onNavigate}
-          type="button"
-        />
-      ) : null}
-      <aside
-        className={cn(
-          'fixed inset-y-0 left-0 z-40 flex w-[232px] flex-col border-r border-line bg-surface transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0',
-          isOpen ? 'translate-x-0' : '-translate-x-full',
-        )}
-      >
-        <div className="flex h-14 items-center gap-2.5 border-b border-line px-5">
-          <QuantaMark />
-          <p className="text-[15px] font-semibold tracking-tight text-ink">Quanta</p>
+    <aside className="hidden md:flex w-[244px] shrink-0 flex-col bg-sidebar text-ink-300">
+      <div className="flex items-center gap-2.5 px-5 pt-5 pb-3">
+        <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 shadow-soft">
+          <Hexagon className="h-4 w-4 text-white" strokeWidth={2.5} />
         </div>
+        <div className="leading-tight">
+          <div className="text-[15px] font-semibold tracking-[0.18em] text-white">QUANTA</div>
+          <div className="text-[10px] uppercase tracking-[0.28em] text-ink-500">Data quality</div>
+        </div>
+      </div>
 
-        <nav aria-label="Primary navigation" className="flex-1 px-3 py-4">
-          <ul className="space-y-0.5">
-            {items.map(({ label, to, icon: Icon }) => (
-              <li key={to}>
-                <NavLink to={to} end={to === ''} onClick={onNavigate}>
-                  {({ isActive }) => (
-                    <span
-                      className={cn(
-                        'group flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
-                        isActive
-                          ? 'bg-accent-tint text-accent font-medium'
-                          : 'text-ink-soft hover:bg-canvas hover:text-ink',
-                      )}
-                    >
-                      <Icon
-                        aria-hidden="true"
-                        className="shrink-0"
-                        size={16}
-                        strokeWidth={isActive ? 2 : 1.6}
-                      />
-                      <span>{label}</span>
-                    </span>
-                  )}
-                </NavLink>
+      <nav className="mt-4 flex-1 overflow-y-auto px-3 pb-6">
+        <SectionLabel>Workspace</SectionLabel>
+        <ul className="mt-2 space-y-0.5">
+          {PRIMARY.map((item) => (
+            <li key={item.to}>
+              <SidebarLink item={item} />
+            </li>
+          ))}
+        </ul>
+
+        <div className="mt-6">
+          <SectionLabel>Operate</SectionLabel>
+          <ul className="mt-2 space-y-0.5">
+            {SECONDARY.map((item) => (
+              <li key={item.to}>
+                <SidebarLink item={item} />
               </li>
             ))}
           </ul>
-        </nav>
-
-        <div className="flex h-12 items-center gap-2 border-t border-line px-5 text-xs text-muted">
-          <span
-            aria-hidden="true"
-            className={cn(
-              'h-1.5 w-1.5 rounded-full',
-              serviceTone === 'success' && 'bg-success',
-              serviceTone === 'warning' && 'bg-warning',
-              serviceTone === 'muted' && 'bg-muted',
-            )}
-          />
-          <span>{serviceLabel}</span>
         </div>
-      </aside>
-    </>
-  )
+      </nav>
+
+      <div className="border-t border-ink-700/40 px-5 py-4">
+        <div className="flex items-center gap-3">
+          <div className="grid h-8 w-8 place-items-center rounded-full bg-ink-700 text-ink-300 text-xs font-semibold">
+            QS
+          </div>
+          <div className="leading-tight">
+            <div className="text-sm font-medium text-white">Quanta Studio</div>
+            <div className="text-[11px] text-ink-500">workspace · prod</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
 }
 
-function cn(...classes: Array<string | false | null | undefined>): string {
-  return classes.filter(Boolean).join(' ')
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="px-3 text-[10px] uppercase tracking-[0.18em] text-ink-500">{children}</div>
+  );
+}
+
+function SidebarLink({ item }: { item: NavItem }) {
+  const Icon = item.icon;
+  return (
+    <NavLink
+      to={item.to}
+      end={item.to === "/"}
+      className={({ isActive }) =>
+        cn(
+          "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
+          isActive
+            ? "bg-ink-700/40 text-white"
+            : "text-ink-300 hover:bg-ink-700/30 hover:text-white",
+        )
+      }
+    >
+      <Icon className="h-4 w-4" />
+      <span>{item.label}</span>
+    </NavLink>
+  );
 }

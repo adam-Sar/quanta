@@ -1,43 +1,57 @@
-import type { HTMLAttributes } from 'react'
+import { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
-import { cn } from '../../lib/utils'
+/* ---------- Severity text-only badge (no background pills) ---------- */
 
-type BadgeTone = 'accent' | 'success' | 'warning' | 'danger' | 'muted' | 'info'
+export type Severity = "info" | "low" | "medium" | "high" | "critical";
 
-interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
-  tone?: BadgeTone
-  dot?: boolean
+const sevText: Record<Severity, string> = {
+  critical: "text-sev-critical",
+  high: "text-sev-high",
+  medium: "text-sev-medium",
+  low: "text-sev-low",
+  info: "text-sev-info",
+};
+
+export interface SeverityTextProps {
+  severity: string | null | undefined;
+  className?: string;
 }
 
-const toneClasses: Record<BadgeTone, string> = {
-  // Metabase-style badges: tinted background, dark text, no border.
-  accent: 'bg-accent-tint text-accent',
-  success: 'bg-emerald-50 text-emerald-700',
-  warning: 'bg-amber-50 text-amber-700',
-  danger: 'bg-rose-50 text-rose-700',
-  muted: 'bg-canvas text-muted',
-  info: 'bg-sky-50 text-sky-700',
+export function SeverityText({ severity, className }: SeverityTextProps) {
+  const key = (severity ?? "").toLowerCase() as Severity;
+  const cls = sevText[key] ?? "text-ink-500";
+  return (
+    <span className={cn("text-xs font-medium uppercase tracking-wide", cls, className)}>
+      {severity ?? "—"}
+    </span>
+  );
 }
 
-export function Badge({ className, tone = 'muted', dot = false, children, ...props }: BadgeProps) {
+/* ---------- Generic inline label, backdrop optional ---------- */
+
+export interface BadgeProps {
+  children: ReactNode;
+  variant?: "neutral" | "brand" | "muted";
+  className?: string;
+}
+
+export function Badge({ children, variant = "neutral", className }: BadgeProps) {
+  const variantCls =
+    variant === "brand"
+      ? "bg-brand-50 text-brand-700"
+      : variant === "muted"
+        ? "bg-ink-50 text-ink-700"
+        : "bg-ink-100 text-ink-800";
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[11px] font-medium',
-        toneClasses[tone],
+        "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium",
+        variantCls,
         className,
       )}
-      {...props}
     >
-      {dot ? (
-        <span
-          aria-hidden="true"
-          className={cn(
-            'h-1.5 w-1.5 rounded-full bg-current',
-          )}
-        />
-      ) : null}
       {children}
     </span>
-  )
+  );
 }

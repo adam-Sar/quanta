@@ -1,24 +1,27 @@
-import { defineConfig, type ProxyOptions } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import path from "node:path";
 
-const datasetProxy: ProxyOptions = {
-  target: 'http://localhost:8000',
-  changeOrigin: true,
-  bypass(request) {
-    const accept = request.headers.accept ?? ''
-    return accept.includes('text/html') ? '/index.html' : undefined
-  },
-}
+// Vite dev server proxies the FastAPI backend on :8000 so the browser
+// does not need CORS. The backend does not declare an Allow-Origin yet.
+const BACKEND = process.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
 export default defineConfig({
   plugins: [react()],
-  server: {
-    port: 5173,
-    proxy: {
-      '/health': 'http://localhost:8000',
-      '/datasets': datasetProxy,
-      '/metrics': 'http://localhost:8000',
-      '/limits': 'http://localhost:8000',
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "src"),
     },
   },
-})
+  server: {
+    port: 5173,
+    host: true,
+    proxy: {
+      "/api": {
+        target: BACKEND,
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/api/, ""),
+      },
+    },
+  },
+});
