@@ -83,8 +83,20 @@ export async function apiGet<T>(
   params?: Record<string, unknown>,
   config?: AxiosRequestConfig,
 ): Promise<T> {
-  const res = await apiClient.get<T>(url, { params, ...config });
-  return res.data;
+  try {
+    const res = await apiClient.get<T>(url, { params, ...config });
+    return res.data;
+  } catch (err) {
+    // Some GET endpoints signal "not yet computed" with a 409 instead of
+    // an empty 200 (e.g. /profile before profiling has been run). Treat
+    // those as a successful empty result so TanStack Query renders the
+    // existing !data empty state instead of an error boundary, and the
+    // 409 is no longer logged as a network failure.
+    if (err instanceof ApiError && err.status === 409) {
+      return null as T;
+    }
+    throw err;
+  }
 }
 
 export async function apiPost<T>(

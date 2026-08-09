@@ -130,6 +130,7 @@ export function DatasetOverviewTab() {
   return (
     <div className="space-y-4">
       <TopMetricRow
+        datasetId={dataset.id}
         score={score}
         topCompleteness={topCompleteness}
         topUniqueness={topUniqueness}
@@ -156,12 +157,14 @@ export function DatasetOverviewTab() {
 
 /* ---------- Top metric strip ---------- */
 function TopMetricRow({
+  datasetId,
   score,
   topCompleteness,
   topUniqueness,
   topValidity,
   topTimeliness,
 }: {
+  datasetId: string;
   score?: QualityScore;
   topCompleteness: number;
   topUniqueness: number;
@@ -183,7 +186,7 @@ function TopMetricRow({
                 : "Run scoring to compute a quality score."}
             </p>
             <Link
-              to={`/datasets/${score?.dataset_id ?? ""}/quality`}
+              to={`/datasets/${datasetId}/quality`}
               className="mt-2 inline-flex items-center gap-1 rounded-lg border border-ink-200 px-2.5 py-1 text-xs font-medium text-ink-700 hover:bg-ink-50"
             >
               View quality
