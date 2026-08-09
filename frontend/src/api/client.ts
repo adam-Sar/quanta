@@ -1,115 +1,105 @@
-import type { ApiErrorDetails, ApiErrorPayload } from '../types/api'
-
-const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL
-const defaultBaseUrl = import.meta.env.DEV ? '' : 'http://localhost:8000'
-export const API_BASE_URL = (configuredBaseUrl ?? defaultBaseUrl).replace(/\/$/, '')
+import axios, { AxiosError, AxiosRequestConfig } from "axios";
 
 export class ApiError extends Error {
-  readonly status: number
-  readonly code: string
-  readonly details: ApiErrorDetails
-  readonly requestId: string | null
+  code: string;
+  status: number;
+  requestId: string | null;
+  details: unknown;
 
   constructor(
-    status: number,
-    code: string,
     message: string,
-    details: ApiErrorDetails,
+    code: string,
+    status: number,
     requestId: string | null,
+    details: unknown,
   ) {
-    super(message)
-    this.name = 'ApiError'
-    this.status = status
-    this.code = code
-    this.details = details
-    this.requestId = requestId
+    super(message);
+    this.name = "ApiError";
+    this.code = code;
+    this.status = status;
+    this.requestId = requestId;
+    this.details = details;
   }
 }
 
-function createRequestId(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return `ui-${crypto.randomUUID()}`
-  }
-
-  return `ui-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+interface ApiEnvelopeError {
+  error: {
+    code: string;
+    message: string;
+    details?: unknown;
+    request_id?: string;
+  };
 }
 
-function isApiErrorPayload(value: unknown): value is ApiErrorPayload {
-  if (!value || typeof value !== 'object' || !('error' in value)) {
-    return false
-  }
-
-  const error = value.error
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'code' in error &&
-    'message' in error &&
-    'request_id' in error &&
-    typeof error.code === 'string' &&
-    typeof error.message === 'string' &&
-    typeof error.request_id === 'string'
-  )
+function makeRequestId(): string {
+  // Aligned with the backend's safe character set for X-Request-ID
+  // (letters, digits, ., _, :, -; length 1–128).
+  const rand = Math.random().toString(36).slice(2, 10);
+  const stamp = Date.now().toString(36);
+  return `ui-${stamp}-${rand}`;
 }
 
-export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const requestId = createRequestId()
-  const headers = new Headers(init.headers)
-  headers.set('Accept', 'application/json')
-  headers.set('X-Request-ID', requestId)
+export const apiClient = axios.create({
+  baseURL: "/api", // proxied to the backend in dev (see vite.config.ts)
+  timeout: 30_000,
+  headers: { "Content-Type": "application/json" },
+});
 
-  if (init.body && !(init.body instanceof FormData) && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json')
-  }
+apiClient.interceptors.request.use((cfg) => {
+  cfg.headers = cfg.headers ?? {};
+  cfg.headers["X-Request-ID"] = makeRequestId();
+  return cfg;
+});
 
-  let response: Response
-  try {
-    response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers })
-  } catch {
-    throw new ApiError(
-      0,
-      'network_error',
-      'Unable to reach the Quanta API. Check that the backend is running and try again.',
-      null,
-      requestId,
-    )
-  }
-
-  const responseRequestId = response.headers.get('X-Request-ID') ?? requestId
-  const rawBody = await response.text()
-  let payload: unknown = null
-
-  if (rawBody) {
-    try {
-      payload = JSON.parse(rawBody) as unknown
-    } catch {
-      payload = null
-    }
-  }
-
-  if (!response.ok) {
-    if (isApiErrorPayload(payload)) {
+apiClient.interceptors.response.use(
+  (r) => r,
+  (err: AxiosError<ApiEnvelopeError>) => {
+    const status = err.response?.status ?? 0;
+    const requestId =
+      (err.response?.headers?.["x-request-id"] as string | undefined) ?? null;
+    const data = err.response?.data;
+    if (data && typeof data === "object" && "error" in data) {
+      const e = (data as ApiEnvelopeError).error;
       throw new ApiError(
-        response.status,
-        payload.error.code,
-        payload.error.message,
-        payload.error.details,
-        payload.error.request_id || responseRequestId,
-      )
+        e.message ?? err.message,
+        e.code ?? "internal_error",
+        status,
+        e.request_id ?? requestId,
+        e.details ?? null,
+      );
     }
-
     throw new ApiError(
-      response.status,
-      'request_failed',
-      `The API returned an unexpected ${response.status} response.`,
+      err.message || "Network error",
+      "network_error",
+      status,
+      requestId,
       null,
-      responseRequestId,
-    )
-  }
+    );
+  },
+);
 
-  if (response.status === 204 || !rawBody) {
-    return undefined as T
-  }
+export async function apiGet<T>(
+  url: string,
+  params?: Record<string, unknown>,
+  config?: AxiosRequestConfig,
+): Promise<T> {
+  const res = await apiClient.get<T>(url, { params, ...config });
+  return res.data;
+}
 
-  return payload as T
+export async function apiPost<T>(
+  url: string,
+  body?: unknown,
+  config?: AxiosRequestConfig,
+): Promise<T> {
+  const res = await apiClient.post<T>(url, body, config);
+  return res.data;
+}
+
+export async function apiDelete<T>(
+  url: string,
+  config?: AxiosRequestConfig,
+): Promise<T> {
+  const res = await apiClient.delete<T>(url, config);
+  return res.data;
 }

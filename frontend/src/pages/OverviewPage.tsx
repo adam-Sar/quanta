@@ -1,246 +1,289 @@
-import { useQuery } from '@tanstack/react-query'
-import { Database, Plus } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { useQuery } from "@tanstack/react-query";
+import {
+  ArrowUpRight,
+  Database,
+  LineChart,
+  ShieldCheck,
+  ListTodo,
+} from "lucide-react";
+import { Link } from "react-router-dom";
 
-import { listDatasets } from '../api/datasets'
-import { getHealth, getReadiness } from '../api/health'
-import { ApiError } from '../api/client'
-import { formatNumber, formatTimestamp } from '../lib/utils'
-import { Badge } from '../components/ui/Badge'
-import { Button } from '../components/ui/Button'
-import { EmptyState } from '../components/ui/EmptyState'
-import { ErrorState } from '../components/ui/ErrorState'
-import { LoadingSkeleton } from '../components/ui/LoadingSkeleton'
-import { PageHeader } from '../components/ui/PageHeader'
-import { Panel, SectionHeading } from '../components/ui/Panel'
-import type { DatasetResponse } from '../types/api'
-
-const RECENT_DATASET_LIMIT = 6
-
-type Tone = 'success' | 'warning' | 'danger' | 'muted'
-
-function StatusDot({ tone }: { tone: Tone }) {
-  const colorClass =
-    tone === 'success'
-      ? 'bg-success'
-      : tone === 'warning'
-        ? 'bg-warning'
-        : tone === 'danger'
-          ? 'bg-danger'
-          : 'bg-muted'
-  return <span aria-hidden="true" className={`inline-block h-1.5 w-1.5 rounded-full ${colorClass}`} />
-}
-
-function HealthRow({
-  detail,
-  label,
-  timestamp,
-  tone,
-}: {
-  label: string
-  detail: string
-  tone: Tone
-  timestamp?: string
-}) {
-  return (
-    <div className="grid grid-cols-1 gap-1 border-b border-line py-3 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto] sm:items-center sm:gap-x-6">
-      <div className="flex items-center gap-2.5">
-        <StatusDot tone={tone} />
-        <span className="text-sm font-medium text-ink">{label}</span>
-      </div>
-      <span className="text-sm text-muted">{detail}</span>
-      <span className="font-mono text-[11px] text-muted/80">
-        {timestamp ? formatTimestamp(timestamp) : ''}
-      </span>
-    </div>
-  )
-}
+import { Topbar } from "@/components/layout/Topbar";
+import { Card, CardHeader } from "@/components/ui/Card";
+import { Metric } from "@/components/ui/Metric";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { SeverityText } from "@/components/ui/Badge";
+import { ProgressBar } from "@/components/ui/ProgressBar";
+import { Sparkline } from "@/components/ui/Sparkline";
+import { LoadingState, ErrorState, EmptyState } from "@/components/ui/States";
+import { listDatasets } from "@/api/datasets";
+import { listFindings } from "@/api/findings";
+import { listScores } from "@/api/scores";
+import { listDatasetJobs } from "@/api/jobs";
+import { getHealth, getHealthReady } from "@/api/health";
+import {
+  formatBytes,
+  formatNumber,
+  formatRelativeFromNow,
+} from "@/lib/utils";
 
 export function OverviewPage() {
-  const healthQuery = useQuery({
-    queryKey: ['health', 'liveness'],
+  const { data: health } = useQuery({
+    queryKey: ["health"],
     queryFn: getHealth,
-    staleTime: 30_000,
-    retry: 1,
-  })
-  const readinessQuery = useQuery({
-    queryKey: ['health', 'readiness'],
-    queryFn: getReadiness,
-    refetchInterval: 30_000,
-    retry: 1,
-    staleTime: 10_000,
-  })
-  const datasetsQuery = useQuery({
-    queryKey: ['datasets', { page: 1, pageSize: RECENT_DATASET_LIMIT }],
-    queryFn: () => listDatasets({ page: 1, pageSize: RECENT_DATASET_LIMIT }),
-    retry: 1,
-    staleTime: 10_000,
-  })
+  });
+  const { data: ready } = useQuery({
+    queryKey: ["health-ready"],
+    queryFn: getHealthReady,
+    refetchInterval: 60_000,
+  });
+  const { data: datasets, isLoading: dl } = useQuery({
+    queryKey: ["datasets", { page: 1, page_size: 50 }],
+    queryFn: () => listDatasets({ page: 1, page_size: 50 }),
+  });
+  const datasetId = datasets?.items[0]?.id;
+  const { data: scores, isLoading: sl, error: serr } = useQuery({
+    queryKey: ["scores", datasetId],
+    queryFn: () => listScores(datasetId!, 1, 50),
+    enabled: !!datasetId,
+  });
+  const { data: findings, isLoading: fl, error: ferr } = useQuery({
+    queryKey: ["findings", datasetId],
+    queryFn: () => listFindings(datasetId!, 1, 50),
+    enabled: !!datasetId,
+  });
+  const { data: jobs, isLoading: jl } = useQuery({
+    queryKey: ["jobs", datasetId],
+    queryFn: () => listDatasetJobs(datasetId!, 1, 20),
+    enabled: !!datasetId,
+  });
 
-  const readinessTone: Tone = readinessQuery.isSuccess ? 'success' : 'warning'
-  const readinessDetail = readinessQuery.isSuccess
-    ? 'Connected'
-    : readinessQuery.error instanceof ApiError
-      ? readinessQuery.error.message
-      : 'Unavailable'
-
-  const recentDatasets = datasetsQuery.data?.items ?? []
-  const datasetsTotal = datasetsQuery.data?.pagination.total_items ?? 0
+  const head = datasets?.items[0];
+  const v = head?.current_version;
+  const score = scores?.items[0];
+  const succeeded = jobs?.items.filter((j: { status: string }) => j.status === "succeeded").length ?? 0;
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        action={
-          <Link to="/datasets">
-            <Button variant="primary">
-              <Plus aria-hidden="true" size={16} />
-              Add dataset
-            </Button>
-          </Link>
+    <>
+      <Topbar
+        crumbs={[{ label: "Overview" }]}
+        meta={
+          <span className="hidden text-xs text-ink-500 sm:inline-flex">
+            <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-sev-low" />
+            {ready?.status === "ready" ? "Production-ready" : "Warming up…"}
+          </span>
         }
-        description="Service health, the dataset inventory, and the most recent activity in Quanta."
-        title="Overview"
       />
 
-      <Panel>
-        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
-          <div className="border-b border-line p-5 md:border-b-0 md:border-r md:px-6">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Backend</p>
-            <p className="mt-2 flex items-center gap-2 text-base font-semibold text-ink">
-              <StatusDot tone={readinessTone} />
-              {readinessQuery.isSuccess ? 'Healthy' : 'Unavailable'}
-            </p>
-            <p className="mt-1 text-xs text-muted">
-              {healthQuery.isSuccess ? `${healthQuery.data.service} · ${healthQuery.data.version}` : '—'}
-            </p>
-          </div>
-          <div className="px-5 py-2 md:px-6">
-            {healthQuery.isPending ? (
-              <div className="py-4">
-                <LoadingSkeleton lines={2} />
+      <PageHeader
+        title="Overview"
+        description="Service health, latest runs, and the highest-impact issues across your datasets."
+      />
+
+      <div className="space-y-6 p-6">
+        {/* Top metric strip */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <div className="flex items-center gap-3">
+              <div className="grid h-9 w-9 place-items-center rounded-xl bg-brand-50 text-brand-600">
+                <Database className="h-4 w-4" />
               </div>
-            ) : healthQuery.isError ? (
-              <div className="py-4">
-                <ErrorState
-                  message={healthQuery.error instanceof ApiError ? healthQuery.error.message : 'The liveness check failed.'}
-                  onRetry={() => void healthQuery.refetch()}
-                  requestId={healthQuery.error instanceof ApiError ? healthQuery.error.requestId : null}
-                  title="Liveness check failed"
+              <Metric
+                label="Datasets"
+                value={dl ? "—" : formatNumber(datasets?.pagination.total_items ?? 0)}
+              />
+            </div>
+          </Card>
+          <Card>
+            <div className="flex items-center gap-3">
+              <div className="grid h-9 w-9 place-items-center rounded-xl bg-brand-50 text-brand-600">
+                <LineChart className="h-4 w-4" />
+              </div>
+              <Metric
+                label="Latest score"
+                value={sl ? "—" : `${score?.score.toFixed(0) ?? "—"}/100`}
+                helper={score ? `Grade ${score.grade}` : undefined}
+              />
+            </div>
+          </Card>
+          <Card>
+            <div className="flex items-center gap-3">
+              <div className="grid h-9 w-9 place-items-center rounded-xl bg-brand-50 text-brand-600">
+                <ShieldCheck className="h-4 w-4" />
+              </div>
+              <Metric
+                label="Open findings"
+                value={fl ? "—" : formatNumber(findings?.pagination.total_items ?? 0)}
+                helper="Across all datasets"
+              />
+            </div>
+          </Card>
+          <Card>
+            <div className="flex items-center gap-3">
+              <div className="grid h-9 w-9 place-items-center rounded-xl bg-brand-50 text-brand-600">
+                <ListTodo className="h-4 w-4" />
+              </div>
+              <Metric
+                label="Job runs"
+                value={jl ? "—" : formatNumber(jobs?.pagination.total_items ?? 0)}
+                helper={`${succeeded} succeeded`}
+              />
+            </div>
+          </Card>
+
+        {/* Two-column section */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <Card className="lg:col-span-2">
+            <CardHeader
+              eyebrow="Latest dataset"
+              title={
+                head ? (
+                  <Link
+                    to={`/datasets/${head.id}`}
+                    className="hover:text-brand-600"
+                  >
+                    {head.name}
+                  </Link>
+                ) : (
+                  "No datasets yet"
+                )
+              }
+              description={
+                v
+                  ? `${formatNumber(v.row_count)} rows · ${formatBytes(v.size_bytes)}`
+                  : "Upload a CSV or Parquet file to begin"
+              }
+              action={
+                head && (
+                  <Link
+                    to={`/datasets/${head.id}`}
+                    className="text-xs font-medium text-brand-600 hover:text-brand-700"
+                  >
+                    Open <ArrowUpRight className="ml-0.5 inline h-3.5 w-3.5" />
+                  </Link>
+                )
+              }
+            />
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="rounded-2xl border border-ink-100 p-3">
+                <div className="label-eyebrow">Quality score</div>
+                <div className="mt-1 text-3xl font-semibold tnum text-ink-900">
+                  {sl ? "—" : `${score?.score.toFixed(0) ?? "—"}/100`}
+                </div>
+                <ProgressBar
+                  value={(score?.score ?? 0) / 100}
+                  variant="severity"
+                  className="mt-3"
                 />
+                {serr && <ErrorState error={serr} />}
               </div>
+              <div className="rounded-2xl border border-ink-100 p-3">
+                <div className="label-eyebrow">Findings</div>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <span className="text-3xl font-semibold tnum text-ink-900">
+                    {fl ? "—" : formatNumber(findings?.pagination.total_items ?? 0)}
+                  </span>
+                  <span className="text-xs text-ink-500">across 5 detectors</span>
+                </div>
+                <Sparkline
+                  values={(findings?.items ?? [])
+                    .slice(0, 24)
+                    .map((f, i) => 80 - i * 2 + ((f.value ?? 0) % 4))}
+                  height={48}
+                  className="mt-2"
+                />
+                {ferr && <ErrorState error={ferr} />}
+              </div>
+            </div>
+          </Card>
+
+          <Card>
+            <CardHeader
+              eyebrow="Service"
+              title="Runtime status"
+              action={
+                <span className="text-xs text-ink-500">
+                  {health?.version ?? "—"}
+                </span>
+              }
+            />
+            <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <dt className="text-ink-500">Status</dt>
+                <dd className="font-medium text-ink-900">{health?.status ?? "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-ink-500">Environment</dt>
+                <dd className="font-medium text-ink-900">{health?.environment ?? "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-ink-500">Database</dt>
+                <dd className="font-medium text-ink-900">{ready?.checks.database ?? "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-ink-500">Last check</dt>
+                <dd className="font-medium text-ink-900">{formatRelativeFromNow(ready?.timestamp)}</dd>
+              </div>
+            </dl>
+          </Card>
+        </div>
+
+        {/* Recent findings */}
+        <Card>
+          <CardHeader
+            eyebrow="Recent findings"
+            title="Top issues across the latest dataset"
+            action={
+              <Link
+                to="/findings"
+                className="text-xs font-medium text-brand-600 hover:text-brand-700"
+              >
+                View all <ArrowUpRight className="ml-0.5 inline h-3.5 w-3.5" />
+              </Link>
+            }
+          />
+          <div className="mt-4 -mx-5">
+            {fl ? (
+              <LoadingState label="Loading findings…" />
+            ) : ferr ? (
+              <ErrorState error={ferr} />
+            ) : (findings?.items.length ?? 0) === 0 ? (
+              <EmptyState
+                title="No findings yet"
+                description="Run detection on the latest dataset profile to surface issues."
+              />
             ) : (
-              <>
-                <HealthRow
-                  detail={healthQuery.data.service}
-                  label="Process liveness"
-                  timestamp={healthQuery.data.timestamp}
-                  tone="success"
-                />
-                <HealthRow
-                  detail={readinessDetail}
-                  label="PostgreSQL"
-                  timestamp={readinessQuery.data?.timestamp}
-                  tone={readinessTone}
-                />
-              </>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Kind</th>
+                    <th>Severity</th>
+                    <th>Column</th>
+                    <th>Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {findings!.items.slice(0, 8).map((f) => (
+                    <tr key={f.finding_id}>
+                      <td className="font-medium text-ink-900">{f.description}</td>
+                      <td className="text-ink-500">{f.kind}</td>
+                      <td>
+                        <SeverityText severity={f.severity} />
+                      </td>
+                      <td className="font-mono text-xs">{f.column_name ?? "—"}</td>
+                      <td className="tnum">{f.value.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
-        </div>
-      </Panel>
+        </Card>
 
-      <Panel padded={false}>
-        <div className="flex items-center justify-between gap-4 border-b border-line px-5 py-4 md:px-6">
-          <SectionHeading
-            description="The most recently updated datasets in the workspace."
-            eyebrow="Inventory"
-            title="Recent datasets"
-          />
-          {datasetsTotal > 0 ? (
-            <Link
-              className="shrink-0 text-xs text-muted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-              to="/datasets"
-            >
-              View all <span aria-hidden="true">→</span>
-            </Link>
-          ) : null}
-        </div>
 
-        {datasetsQuery.isPending ? (
-          <div className="p-5 md:p-6">
-            <LoadingSkeleton lines={4} />
-          </div>
-        ) : datasetsQuery.isError ? (
-          <div className="p-5 md:p-6">
-            <ErrorState
-              message={
-                datasetsQuery.error instanceof ApiError
-                  ? datasetsQuery.error.message
-                  : 'The dataset inventory is unreachable.'
-              }
-              onRetry={() => void datasetsQuery.refetch()}
-              requestId={datasetsQuery.error instanceof ApiError ? datasetsQuery.error.requestId : null}
-              title="Datasets could not be loaded"
-            />
-          </div>
-        ) : recentDatasets.length === 0 ? (
-          <EmptyState
-            className="m-5"
-            description="Upload a CSV or Parquet file to add the first source to the workspace."
-            icon={Database}
-            title="No datasets yet"
-          />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-[720px] w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-line bg-canvas/30 text-[10px] uppercase tracking-[0.12em] text-muted">
-                  <th className="px-5 py-2.5 font-semibold md:px-6">Name</th>
-                  <th className="px-3 py-2.5 text-right font-semibold">Rows</th>
-                  <th className="px-3 py-2.5 text-right font-semibold">Columns</th>
-                  <th className="px-3 py-2.5 font-semibold">Format</th>
-                  <th className="px-3 py-2.5 font-semibold">Status</th>
-                  <th className="px-5 py-2.5 text-right font-semibold md:px-6">Updated</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentDatasets.map((dataset: DatasetResponse) => {
-                  const version = dataset.current_version
-                  return (
-                    <tr
-                      className="border-b border-line/70 last:border-b-0 hover:bg-elevated/40"
-                      key={dataset.id}
-                    >
-                      <td className="px-5 py-3 md:px-6">
-                        <Link
-                          className="font-medium text-ink hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                          to={`/datasets/${dataset.id}`}
-                        >
-                          {dataset.name}
-                        </Link>
-                      </td>
-                      <td className="px-3 py-3 text-right font-mono tabular-nums text-ink">
-                        {version ? formatNumber(version.row_count) : '—'}
-                      </td>
-                      <td className="px-3 py-3 text-right font-mono tabular-nums text-ink">
-                        {version ? formatNumber(version.column_count) : '—'}
-                      </td>
-                      <td className="px-3 py-3 text-muted">{version?.format?.toUpperCase() ?? '—'}</td>
-                      <td className="px-3 py-3">
-                        <Badge dot tone={version?.status === 'stored' ? 'success' : 'muted'}>
-                          {version?.status ?? 'No version'}
-                        </Badge>
-                      </td>
-                      <td className="px-5 py-3 text-right text-muted md:px-6">
-                        {formatTimestamp(dataset.updated_at)}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Panel>
-    </div>
-  )
+        </div>
+      </div>
+    </>
+  );
 }

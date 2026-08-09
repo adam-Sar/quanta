@@ -1,57 +1,50 @@
-import { request } from './client'
-import type {
-  DatasetListResponse,
-  DatasetResponse,
-  DatasetVersionListResponse,
-} from '../types/api'
+import { apiClient, apiGet } from "./client";
+import type { Dataset, DatasetListResponse, DatasetVersion } from "@/types/api";
 
-const DEFAULT_PAGE_SIZE = 50
-
-export interface ListDatasetsParams {
-  page?: number
-  pageSize?: number
+export interface DatasetListParams {
+  page?: number;
+  page_size?: number;
 }
 
-export function listDatasets({ page = 1, pageSize = DEFAULT_PAGE_SIZE }: ListDatasetsParams = {}): Promise<DatasetListResponse> {
-  const searchParams = new URLSearchParams({
-    page: String(page),
-    page_size: String(pageSize),
-  })
-
-  return request<DatasetListResponse>(`/datasets?${searchParams.toString()}`)
+function withVersionAliases(v: DatasetVersion | undefined): DatasetVersion | undefined {
+  if (!v) return v;
+  return {
+    ...v,
+    format: v.format ?? v.file_type,
+    size_bytes: v.size_bytes ?? v.file_size_bytes,
+  };
 }
 
+export function listDatasets(params: DatasetListParams = {}) {
+  return apiGet<DatasetListResponse>("/datasets", params as Record<string, unknown>);
+}
+
+export function getDataset(datasetId: string) {
+  return apiGet<Dataset>(`/datasets/${datasetId}`).then((d) => ({
+    ...d,
+    current_version: withVersionAliases(d.current_version),
+  }));
+}
+
+export function listDatasetVersions(datasetId: string, page = 1, pageSize = 50) {
+  return apiGet<{ items: DatasetVersion[]; pagination: unknown }>(
+    `/datasets/${datasetId}/versions`,
+    { page, page_size: pageSize },
+  );
+}
 export interface CreateDatasetInput {
-  file: File
-  name: string
-  description?: string
+  name: string;
+  description?: string;
+  file: File;
 }
 
-export function getDataset(datasetId: string): Promise<DatasetResponse> {
-  return request<DatasetResponse>(`/datasets/${datasetId}`)
-}
-
-export function listDatasetVersions(
-  datasetId: string,
-  { page = 1, pageSize = DEFAULT_PAGE_SIZE }: ListDatasetsParams = {},
-): Promise<DatasetVersionListResponse> {
-  const searchParams = new URLSearchParams({
-    page: String(page),
-    page_size: String(pageSize),
-  })
-  return request<DatasetVersionListResponse>(`/datasets/${datasetId}/versions?${searchParams.toString()}`)
-}
-
-export function createDataset({ file, name, description }: CreateDatasetInput): Promise<DatasetResponse> {
-  const formData = new FormData()
-  formData.append('file', file)
-  formData.append('name', name)
-  if (description?.trim()) {
-    formData.append('description', description.trim())
-  }
-
-  return request<DatasetResponse>('/datasets', {
-    method: 'POST',
-    body: formData,
-  })
+export async function createDataset(input: CreateDatasetInput) {
+  const form = new FormData();
+  form.append("name", input.name);
+  if (input.description) form.append("description", input.description);
+  form.append("file", input.file);
+  const res = await apiClient.post<Dataset>("/datasets", form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data;
 }
