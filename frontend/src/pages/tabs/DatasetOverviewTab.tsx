@@ -414,6 +414,10 @@ function ColumnSummaryRow({
 
 /* ---------- Top findings ---------- */
 function TopFindingsCard({ findings }: { findings: Finding[] }) {
+  // Mirror the mockup: cap the overview card at the top five findings.
+  // The full list lives on /datasets/{id}/findings, which the
+  // "View all findings" link below already targets.
+  const top = findings.slice(0, 5);
   return (
     <Card>
       <CardHeader
@@ -428,16 +432,20 @@ function TopFindingsCard({ findings }: { findings: Finding[] }) {
           </Link>
         }
       />
-      <div className="mt-3 space-y-2">
-        {findings.length === 0 ? (
+      {top.length === 0 ? (
+        <div className="mt-3">
           <EmptyState
             title="No findings yet"
             description="Run detection to surface quality issues."
           />
-        ) : (
-          findings.map((f) => <FindingRow key={f.finding_id} finding={f} />)
-        )}
-      </div>
+        </div>
+      ) : (
+        <ul className="mt-1 divide-y divide-ink-100">
+          {top.map((f) => (
+            <FindingRow key={f.finding_id} finding={f} />
+          ))}
+        </ul>
+      )}
     </Card>
   );
 }
@@ -446,15 +454,43 @@ function FindingRow({ finding }: { finding: Finding }) {
   const title = findingTitle(finding.kind, finding.column_name);
   const subline = findingSubline(finding.kind, finding.value, finding.threshold);
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-ink-100 px-3 py-2.5 transition-colors hover:bg-ink-50/60">
-      <FindingIcon kind={finding.kind} severity={finding.severity} size={36} />
+    <li className="group relative flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-ink-50/50">
+      {/* Severity stripe — flush left, full row height. This is the
+          primary colour signal in the mockup; the icon stays neutral
+          so the stripe isn't competing with a coloured tile. */}
+      <span
+        aria-hidden
+        className={cn(
+          "absolute inset-y-0 left-0 w-1",
+          severityStripe(finding.severity),
+        )}
+      />
+      <FindingIcon kind={finding.kind} bare size={18} className="text-ink-500" />
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-semibold text-ink-900">{title}</div>
         <div className="mt-0.5 truncate text-xs text-ink-500">{subline}</div>
       </div>
       <ImpactPill severity={finding.severity} />
-    </div>
+    </li>
   );
+}
+
+/* Severity → Tailwind background class for the row's left stripe. */
+function severityStripe(severity: string): string {
+  switch (severity.toLowerCase()) {
+    case "critical":
+      return "bg-red-500";
+    case "high":
+      return "bg-red-500";
+    case "medium":
+      return "bg-orange-500";
+    case "low":
+      return "bg-brand-500";
+    case "info":
+      return "bg-violet-500";
+    default:
+      return "bg-ink-300";
+  }
 }
 
 function ImpactPill({ severity }: { severity: string }) {

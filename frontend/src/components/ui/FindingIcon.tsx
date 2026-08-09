@@ -57,23 +57,46 @@ export interface FindingIconProps {
   kind: FindingKind | string;
   severity?: FindingSeverity | string;
   size?: number;
+  /**
+   * When true, render only the glyph (no background tile, no border).
+   * Used by the top-findings card where the row already carries its
+   * own severity stripe and a coloured tile would compete with it.
+   */
+  bare?: boolean;
   className?: string;
 }
 
 /**
  * Small coloured icon tile used in the top-findings list.
  * Severity overrides the default kind colour when supplied.
+ *
+ * Pass `bare` to render just the glyph (e.g. inside a row that
+ * already has its own severity stripe on the left edge).
  */
 export function FindingIcon({
   kind,
   severity,
   size = 40,
+  bare = false,
   className,
 }: FindingIconProps) {
   const fallback = iconForFinding(kind);
-  const tile = severity
-    ? severityTile(severity)
-    : fallback.tile;
+  const glyph = fallback.icon;
+  if (bare) {
+    return (
+      <span
+        className={cn(
+          "inline-flex shrink-0 items-center justify-center text-ink-500",
+          className,
+        )}
+        style={{ width: size, height: size }}
+        aria-hidden
+      >
+        {glyph}
+      </span>
+    );
+  }
+  const tile = severity ? severityTile(severity) : fallback.tile;
   return (
     <div
       className={cn(
@@ -84,7 +107,7 @@ export function FindingIcon({
       style={{ width: size, height: size }}
       aria-hidden
     >
-      {fallback.icon}
+      {glyph}
     </div>
   );
 }
