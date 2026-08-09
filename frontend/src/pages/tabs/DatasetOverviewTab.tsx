@@ -198,7 +198,7 @@ function TopMetricRow({
         <KpiCard title="Completeness" value={formatPercent(topCompleteness)} delta={2.6} barValue={topCompleteness} barTone="brand" />
       </Card>
       <Card>
-        <KpiCard title="Uniqueness" value={formatPercent(topUniqueness)} delta={-1.3} barValue={topUniqueness} barTone="violet" />
+        <KpiCard title="Uniqueness" value={formatPercent(topUniqueness)} delta={-1.3} barValue={topUniqueness} barTone="brand" />
       </Card>
       <Card>
         <KpiCard title="Validity" value={formatPercent(topValidity)} delta={0.8} barValue={topValidity} barTone="brand" />
@@ -221,14 +221,12 @@ function KpiCard({
   value: string;
   delta: number;
   barValue: number;
-  barTone?: "brand" | "violet" | "severity";
+  barTone?: "brand" | "severity";
 }) {
   const fill =
-    barTone === "violet"
-      ? "bg-gradient-to-r from-violet-400 to-violet-600"
-      : barTone === "severity"
-        ? "bg-gradient-to-r from-brand-400 to-brand-600"
-        : "bg-gradient-to-r from-brand-300 to-brand-600";
+    barTone === "severity"
+      ? "bg-gradient-to-r from-brand-400 to-brand-600"
+      : "bg-gradient-to-r from-brand-300 to-brand-600";
   return (
     <div>
       <div className="label-eyebrow">{title}</div>
@@ -455,13 +453,15 @@ function FindingRow({ finding }: { finding: Finding }) {
   const subline = findingSubline(finding.kind, finding.value, finding.threshold);
   return (
     <li className="group relative flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-ink-50/50">
-      {/* Severity stripe — flush left, full row height. This is the
-          primary colour signal in the mockup; the icon stays neutral
-          so the stripe isn't competing with a coloured tile. */}
+      {/* Severity stripe — inset slightly from the row's left edge
+          and inset vertically so it reads as a soft "tab" marker with
+          a rounded right end, instead of a ruler-flat block. The
+          stripe is the primary colour signal; the icon stays neutral
+          so the two don't compete. */}
       <span
         aria-hidden
         className={cn(
-          "absolute inset-y-0 left-0 w-1",
+          "absolute left-1.5 top-1.5 bottom-1.5 w-1 rounded-r-full",
           severityStripe(finding.severity),
         )}
       />
@@ -487,7 +487,7 @@ function severityStripe(severity: string): string {
     case "low":
       return "bg-brand-500";
     case "info":
-      return "bg-violet-500";
+      return "bg-brand-500";
     default:
       return "bg-ink-300";
   }
@@ -698,7 +698,7 @@ function AIInterpretationCard({
             <FootChip
               label="Likely cause"
               value={likelyCause ?? "Pipeline retry"}
-              variant="violet"
+              variant="blue"
             />
             <FootChip
               label="Confidence"
@@ -732,14 +732,12 @@ function FootChip({
 }: {
   label: string;
   value: string;
-  variant?: "violet" | "blue" | "muted";
+  variant?: "blue" | "muted";
 }) {
   const cls =
-    variant === "violet"
-      ? "bg-violet-50 text-violet-700"
-      : variant === "blue"
-        ? "bg-brand-50 text-brand-700"
-        : "bg-ink-50 text-ink-700";
+    variant === "blue"
+      ? "bg-brand-50 text-brand-700"
+      : "bg-ink-50 text-ink-700";
   return (
     <span className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs">
       <span className={cn("rounded-md px-1.5 py-0.5 text-[11px] font-medium", cls)}>

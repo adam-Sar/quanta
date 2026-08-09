@@ -56,13 +56,17 @@ export default {
           800: "#1f237a",
           900: "#13174e",
         },
-        // Severity tokens — used ONLY for text colour per the user's instruction.
+        // Severity tokens — used for text and background colour.
+        // low → brand blue (was green); high → red (was orange);
+        // medium → orange (was amber). The user asked for "no purple
+        // in the entire app" and a uniform severity gradient that
+        // matches the Top Findings stripe palette.
         sev: {
-          critical: "#d93854",
-          high: "#e36414",
-          medium: "#c08a00",
-          low: "#27a463",
-          info: "#5b6cff",
+          critical: "#dc2626", // red-600
+          high: "#dc2626",     // red-600
+          medium: "#ea580c",   // orange-600
+          low: "#5b6cff",      // brand-500 (blue, not green)
+          info: "#5b6cff",     // brand-500
         },
       },
       boxShadow: {

@@ -38,7 +38,7 @@ function iconForFinding(kind: FindingKind | string): {
     case "invalid_values":
       return {
         icon: <Phone className="h-4 w-4" />,
-        tile: "bg-violet-50 text-violet-600",
+        tile: "bg-brand-50 text-brand-600",
       };
     case "cardinality":
       return {
@@ -123,7 +123,7 @@ function severityTile(severity: string): string {
     case "low":
       return "bg-brand-50 text-brand-600";
     case "info":
-      return "bg-violet-50 text-violet-600";
+      return "bg-brand-50 text-brand-600";
     default:
       return "bg-ink-50 text-ink-600";
   }
