@@ -21,14 +21,13 @@ services:
   api:
     build:
       context: ./backend
+    network_mode: host
     environment:
       ENVIRONMENT: development
       LOG_FORMAT: json
-      DATABASE_URL: postgresql+psycopg://quanta:quanta@postgres:5432/quanta
+      DATABASE_URL: postgresql+psycopg://quanta:quanta@localhost:5432/quanta
       STORAGE_PATH: /app/var/storage
     command: ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
-    ports:
-      - "${API_PORT:-8000}:8000"
     depends_on:
       postgres:
         condition: service_healthy

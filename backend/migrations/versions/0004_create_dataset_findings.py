@@ -35,6 +35,20 @@ _FINDING_SEVERITY_VALUES = (
 def upgrade() -> None:
     """Create the findings table plus the two PostgreSQL enums."""
 
+    # Alembic's default ``alembic_version.version_num`` column is ``VARCHAR(32)``,
+    # which cannot hold the descriptive revision IDs used here (for example
+    # ``0005_create_dataset_quality_scores`` is 34 characters). Widen the column
+    # *before* 0005 runs so the subsequent alembic_version UPDATE in 0005 does
+    # not truncate or fail. Using ``VARCHAR(255)`` leaves room for similarly
+    # named future revisions without further migrations.
+    op.alter_column(
+        "alembic_version",
+        "version_num",
+        existing_type=sa.String(length=32),
+        type_=sa.String(length=255),
+        existing_nullable=False,
+    )
+
     bind = op.get_bind()
     finding_kind = postgresql.ENUM(*_FINDING_KIND_VALUES, name="finding_kind")
     finding_severity = postgresql.ENUM(*_FINDING_SEVERITY_VALUES, name="finding_severity")
