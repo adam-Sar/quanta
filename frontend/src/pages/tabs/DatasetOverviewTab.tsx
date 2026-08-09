@@ -1,14 +1,11 @@
 ﻿import { useMemo, useState } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
-  AlertTriangle,
-  Eye,
-  GitBranch,
-  Lightbulb,
+  ChevronDown,
+  Hash,
   RotateCcw,
   Sparkles,
-  Tag,
 } from "lucide-react";
 
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -17,18 +14,24 @@ import { Trend } from "@/components/ui/Trend";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { EmptyState, LoadingState } from "@/components/ui/States";
 import { QualityOverTimeChart } from "@/components/ui/LineChart";
+import {
+  FindingIcon,
+  findingSubline,
+  findingTitle,
+} from "@/components/ui/FindingIcon";
 import { getInterpretation, listInterpretations } from "@/api/ai";
 import { listScores } from "@/api/scores";
 import {
+  cn,
   formatNumber,
   formatPercent,
   formatRelativeFromNow,
-  kindLabel,
-  severityClass,
+  severityRank,
 } from "@/lib/utils";
 import type {
   Dataset,
   DatasetProfile,
+  DatasetProfileColumn,
   QualityScore,
   Finding,
   FindingListResponse,
@@ -56,12 +59,14 @@ export function DatasetOverviewTab() {
     enabled: !!latestInterpretationId,
   });
 
-  const findingCols = useMemo(() => {
-    const c: Record<string, number> = {};
-    findings?.items.forEach((f) => {
-      if (f.column_name) c[f.column_name] = (c[f.column_name] ?? 0) + 1;
+  const topFindings = useMemo(() => {
+    const items = (findings?.items ?? []).slice();
+    items.sort((a, b) => {
+      const r = severityRank(b.severity) - severityRank(a.severity);
+      if (r !== 0) return r;
+      return b.value - a.value;
     });
-    return c;
+    return items.slice(0, 5);
   }, [findings]);
 
   const topCompleteness = useMemo(() => {
@@ -77,25 +82,70 @@ export function DatasetOverviewTab() {
     return samples > 0 ? total / samples : 0;
   }, [profile]);
 
+  const topUniqueness = useMemo(() => {
+    if (!profile || profile.columns.length === 0) return 0;
+    const total = profile.columns.reduce(
+      (acc, c) => acc + c.metrics.distinct_rate,
+      0,
+    );
+    return total / profile.columns.length;
+  }, [profile]);
+
+  const topValidity = useMemo(() => {
+    if (!profile || profile.columns.length === 0) return 0.99;
+    const numeric = profile.columns.filter((c) =>
+      ["int64", "float64", "int32", "float32"].includes(
+        c.metrics.physical_type,
+      ),
+    );
+    if (numeric.length === 0) return 0.99;
+    const outlied = numeric.reduce((acc, c) => {
+      const mean = c.metrics.numeric.mean ?? 0;
+      const std = c.metrics.numeric.std ?? 0;
+      if (std === 0) return acc;
+      return acc + Math.min(Math.abs(mean / std), 1);
+    }, 0);
+    return 1 - (outlied / numeric.length) * 0.01;
+  }, [profile]);
+
+  const topTimeliness = useMemo(() => {
+    if (!profile || profile.columns.length === 0) return 0.986;
+    const temporal = profile.columns.filter(
+      (c) =>
+        c.metrics.temporal && (c.metrics.temporal.min || c.metrics.temporal.max),
+    );
+    if (temporal.length === 0) return 0.986;
+    const total = temporal.reduce((acc, c) => {
+      const min = c.metrics.temporal.min;
+      const max = c.metrics.temporal.max;
+      if (!min || !max) return acc;
+      const span = Date.parse(max) - Date.parse(min);
+      if (span <= 0) return acc;
+      const days = span / 86_400_000;
+      return acc + Math.min(days / 1800, 1);
+    }, 0);
+    return total / temporal.length;
+  }, [profile]);
+
   return (
     <div className="space-y-4">
-      <TopMetricRow profile={profile} score={score} topCompleteness={topCompleteness} />
-
+      <TopMetricRow
+        score={score}
+        topCompleteness={topCompleteness}
+        topUniqueness={topUniqueness}
+        topValidity={topValidity}
+        topTimeliness={topTimeliness}
+      />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <ColumnSummaryCard
-          profile={profile}
-          search={search}
-          setSearch={setSearch}
-          findingCols={findingCols}
-        />
+        <ColumnSummaryCard profile={profile} search={search} setSearch={setSearch} />
         <div className="space-y-4">
-          <TopFindingsCard findings={findings?.items ?? []} />
+          <TopFindingsCard findings={topFindings} />
           <QualityOverTimeCard datasetId={dataset.id} />
         </div>
       </div>
-
       <AIInterpretationCard
         summary={interpretation?.summary}
+        likelyCause={interpretation?.likely_cause}
         confidence={interpretation?.confidence}
         detectedAt={interpretation?.created_at ?? dataset.updated_at}
         sparkIcon
@@ -103,47 +153,90 @@ export function DatasetOverviewTab() {
     </div>
   );
 }
+
 /* ---------- Top metric strip ---------- */
 function TopMetricRow({
-  profile,
   score,
   topCompleteness,
+  topUniqueness,
+  topValidity,
+  topTimeliness,
 }: {
-  profile?: DatasetProfile;
   score?: QualityScore;
   topCompleteness: number;
+  topUniqueness: number;
+  topValidity: number;
+  topTimeliness: number;
 }) {
-  const uniqueness = profile ? avgDistinct(profile) : 0;
+  const healthWord = score ? healthLabel(score.score) : "Not scored yet";
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
       <Card>
-        <div className="flex items-center gap-4">
+        <div className="label-eyebrow">Table health</div>
+        <div className="mt-3 flex items-center gap-4">
           <ScoreRing score={score?.score ?? 0} size={84} />
-          <div>
-            <div className="label-eyebrow">Table health</div>
-            <div className="text-lg font-semibold text-ink-900">
-              {score ? healthLabel(score.score) : "Not scored yet"}
-            </div>
-            <p className="text-xs text-ink-500">
-              {score ? "Run quality to refresh." : "Run scoring to compute a quality score."}
+          <div className="min-w-0">
+            <div className="text-xl font-semibold text-ink-900">{healthWord}</div>
+            <p className="mt-0.5 text-xs text-ink-500">
+              {score
+                ? `Table is in ${healthWord.toLowerCase()} condition`
+                : "Run scoring to compute a quality score."}
             </p>
+            <Link
+              to={`/datasets/${score?.dataset_id ?? ""}/quality`}
+              className="mt-2 inline-flex items-center gap-1 rounded-lg border border-ink-200 px-2.5 py-1 text-xs font-medium text-ink-700 hover:bg-ink-50"
+            >
+              View quality
+            </Link>
           </div>
         </div>
       </Card>
-      <Card><KpiCard title="Completeness" value={formatPercent(topCompleteness)} delta={2.6} /></Card>
-      <Card><KpiCard title="Uniqueness" value={formatPercent(uniqueness)} delta={-1.3} /></Card>
-      <Card><KpiCard title="Validity" value={formatPercent(0.99)} delta={0.8} /></Card>
-      <Card><KpiCard title="Timeliness" value={formatPercent(0.986)} delta={1.7} /></Card>
+      <Card>
+        <KpiCard title="Completeness" value={formatPercent(topCompleteness)} delta={2.6} barValue={topCompleteness} barTone="brand" />
+      </Card>
+      <Card>
+        <KpiCard title="Uniqueness" value={formatPercent(topUniqueness)} delta={-1.3} barValue={topUniqueness} barTone="violet" />
+      </Card>
+      <Card>
+        <KpiCard title="Validity" value={formatPercent(topValidity)} delta={0.8} barValue={topValidity} barTone="brand" />
+      </Card>
+      <Card>
+        <KpiCard title="Timeliness" value={formatPercent(topTimeliness)} delta={1.7} barValue={topTimeliness} barTone="brand" />
+      </Card>
     </div>
   );
 }
 
-function KpiCard({ title, value, delta }: { title: string; value: string; delta: number }) {
+function KpiCard({
+  title,
+  value,
+  delta,
+  barValue,
+  barTone = "brand",
+}: {
+  title: string;
+  value: string;
+  delta: number;
+  barValue: number;
+  barTone?: "brand" | "violet" | "severity";
+}) {
+  const fill =
+    barTone === "violet"
+      ? "bg-gradient-to-r from-violet-400 to-violet-600"
+      : barTone === "severity"
+        ? "bg-gradient-to-r from-brand-400 to-brand-600"
+        : "bg-gradient-to-r from-brand-300 to-brand-600";
   return (
     <div>
       <div className="label-eyebrow">{title}</div>
-      <div className="mt-1 text-2xl font-semibold tnum text-ink-900">{value}</div>
-      <div className="mt-1">
+      <div className="mt-2 text-2xl font-semibold tnum text-ink-900">{value}</div>
+      <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-ink-100">
+        <div
+          className={cn("h-full rounded-full transition-all", fill)}
+          style={{ width: `${Math.max(0, Math.min(1, barValue)) * 100}%` }}
+        />
+      </div>
+      <div className="mt-2">
         <Trend delta={delta} />
       </div>
     </div>
@@ -158,22 +251,15 @@ function healthLabel(score: number) {
   return "Poor";
 }
 
-function avgDistinct(profile: DatasetProfile): number {
-  if (profile.columns.length === 0) return 0;
-  const total = profile.columns.reduce((acc, c) => acc + c.metrics.distinct_rate, 0);
-  return total / profile.columns.length;
-}
 /* ---------- Column summary ---------- */
 function ColumnSummaryCard({
   profile,
   search,
   setSearch,
-  findingCols,
 }: {
   profile?: DatasetProfile;
   search: string;
   setSearch: (v: string) => void;
-  findingCols: Record<string, number>;
 }) {
   const cols = useMemo(() => {
     if (!profile) return [];
@@ -181,7 +267,8 @@ function ColumnSummaryCard({
     return profile.columns.filter((c) => !q || c.name.toLowerCase().includes(q));
   }, [profile, search]);
 
-  const formatVal = (v: number | null | string) => (v === null || v === undefined ? "ï¿½" : String(v));
+  const formatVal = (v: number | string | null | undefined) =>
+    v === null || v === undefined || v === "" ? "—" : String(v);
 
   return (
     <Card className="lg:col-span-2">
@@ -189,151 +276,353 @@ function ColumnSummaryCard({
         <CardHeader
           eyebrow="Column summary"
           title="Per-column metrics"
-          description={profile ? `Sampled ${formatNumber(profile.sample_size)} rows` : "Profile not yet run"}
+          description={
+            profile
+              ? `Showing ${Math.min(cols.length, 9)} of ${formatNumber(profile.columns.length)} columns`
+              : "Profile not yet run"
+          }
         />
-        <div className="w-72">
-          <SearchInput value={search} onChange={setSearch} placeholder="Search columnsï¿½" />
-        </div>
       </div>
-      <div className="mt-4 -mx-5">
+      <div className="mt-3 max-w-sm">
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search columns..."
+        />
+      </div>
+      <div className="mt-4 -mx-5 overflow-hidden">
         {!profile ? (
-          <LoadingState label="Loading profileï¿½" />
-        ) : (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Column</th>
-                <th>Type</th>
-                <th>Null %</th>
-                <th>Distinct %</th>
-                <th>Min</th>
-                <th>Max</th>
-                <th>Top values</th>
-                <th>Findings</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cols.slice(0, 9).map((c) => (
-                <tr key={c.name}>
-                  <td className="font-medium text-ink-900">{c.name}</td>
-                  <td><span className="badge-muted">{c.metrics.physical_type}</span></td>
-                  <td className="tnum">{(c.metrics.null_rate * 100).toFixed(2)}%</td>
-                  <td className="tnum">{(c.metrics.distinct_rate * 100).toFixed(2)}%</td>
-                  <td className="tnum font-mono text-xs">{formatVal(c.metrics.numeric.min ?? c.metrics.temporal.min ?? null)}</td>
-                  <td className="tnum font-mono text-xs">{formatVal(c.metrics.numeric.max ?? c.metrics.temporal.max ?? null)}</td>
-                  <td className="font-mono text-xs text-ink-500">
-                    {c.metrics.top_values.slice(0, 3).map((t) => t.value).join(", ") || "ï¿½"}
-                  </td>
-                  <td className="tnum">{findingCols[c.name] ?? 0}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-      <div className="mt-4 flex items-center justify-between">
-        <span className="text-xs text-ink-500">
-          Showing {Math.min(cols.length, 9)} of {formatNumber(cols.length)} columns
-        </span>
-        <a
-          href="#/profile"
-          className="text-xs font-medium text-brand-600 hover:text-brand-700"
-        >
-          See all columns ?
-        </a>
-      </div>
-    </Card>
-  );
-}
-/* ---------- Top findings ---------- */
-function TopFindingsCard({ findings }: { findings: Finding[] }) {
-  const items = findings.slice(0, 6);
-  return (
-    <Card>
-      <CardHeader
-        eyebrow="Top findings"
-        title="Highest-impact issues"
-        description="Sorted by severity then value."
-      />
-      <div className="mt-4 -mx-5">
-        {items.length === 0 ? (
+          <LoadingState label="Loading profile..." />
+        ) : cols.length === 0 ? (
           <EmptyState
-            title="No findings yet"
-            description="Run detection to surface quality issues."
+            title="No matching columns"
+            description="Try a different search term."
           />
         ) : (
           <table className="data-table">
             <thead>
               <tr>
-                <th>Description</th>
-                <th>Kind</th>
-                <th>Severity</th>
-                <th>Column</th>
+                <th className="w-[28%]">Column</th>
+                <th>Type</th>
+                <th>Null %</th>
+                <th>Unique %</th>
+                <th>Min</th>
+                <th>Max</th>
+                <th>Example values</th>
               </tr>
             </thead>
             <tbody>
-              {items.map((f) => (
-                <tr key={f.finding_id}>
-                  <td className="font-medium text-ink-900">{f.description}</td>
-                  <td className="text-ink-500">{kindLabel(f.kind)}</td>
-                  <td><span className={severityClass(f.severity)}>{f.severity}</span></td>
-                  <td className="font-mono text-xs">{f.column_name ?? "ï¿½"}</td>
-                </tr>
+              {cols.slice(0, 9).map((c) => (
+                <ColumnSummaryRow
+                  key={c.name}
+                  column={c}
+                  formatVal={formatVal}
+                />
               ))}
             </tbody>
           </table>
         )}
       </div>
+      <div className="mt-3 flex items-center justify-between">
+        <span className="text-xs text-ink-500">
+          {profile
+            ? `Showing ${Math.min(cols.length, 9)} of ${formatNumber(cols.length)} columns`
+            : "—"}
+        </span>
+        <Link
+          to="./profile"
+          className="inline-flex items-center gap-1 rounded-lg border border-ink-200 px-2.5 py-1 text-xs font-medium text-ink-700 hover:bg-ink-50"
+        >
+          View all columns
+        </Link>
+      </div>
     </Card>
   );
 }
+
+function ColumnSummaryRow({
+  column,
+  formatVal,
+}: {
+  column: DatasetProfileColumn;
+  formatVal: (v: number | string | null | undefined) => string;
+}) {
+  const { metrics, name } = column;
+  const minVal = metrics.numeric.min ?? metrics.temporal.min ?? null;
+  const maxVal = metrics.numeric.max ?? metrics.temporal.max ?? null;
+  const nullPct = metrics.null_rate * 100;
+  const distinctPct = metrics.distinct_rate * 100;
+  const typeLabel = metrics.physical_type;
+  const isPk =
+    name.toLowerCase().endsWith("_id") || name.toLowerCase() === "id";
+  const examples = metrics.top_values
+    .slice(0, 3)
+    .map((t) => t.value)
+    .join(", ");
+  return (
+    <tr>
+      <td>
+        <div className="flex items-center gap-2">
+          <span
+            className={cn(
+              "grid h-5 w-5 place-items-center rounded text-ink-400",
+              isPk ? "text-brand-500" : "",
+            )}
+          >
+            <Hash className="h-3.5 w-3.5" />
+          </span>
+          <span className="font-medium text-ink-900">{name}</span>
+        </div>
+      </td>
+      <td>
+        <span className="inline-flex items-center rounded-md border border-ink-200 px-1.5 py-0.5 text-[11px] font-medium text-ink-700">
+          {typeLabel}
+        </span>
+      </td>
+      <td>
+        <div className="flex items-center gap-2">
+          <div className="relative h-1 w-16 overflow-hidden rounded-full bg-ink-100">
+            <div
+              className={cn(
+                "h-full rounded-full",
+                nullPct >= 10
+                  ? "bg-gradient-to-r from-brand-300 to-brand-600"
+                  : nullPct >= 1
+                    ? "bg-gradient-to-r from-brand-300 to-brand-500"
+                    : "bg-ink-300",
+              )}
+              style={{ width: `${Math.max(2, Math.min(100, nullPct))}%` }}
+            />
+          </div>
+          <span className="tnum text-xs text-ink-700">
+            {nullPct.toFixed(1)}%
+          </span>
+        </div>
+      </td>
+      <td className="tnum">{distinctPct.toFixed(1)}%</td>
+      <td className="tnum font-mono text-xs">{formatVal(minVal)}</td>
+      <td className="tnum font-mono text-xs">{formatVal(maxVal)}</td>
+      <td className="font-mono text-xs text-ink-500" title={examples}>
+        {examples || "—"}
+      </td>
+    </tr>
+  );
+}
+
+/* ---------- Top findings ---------- */
+function TopFindingsCard({ findings }: { findings: Finding[] }) {
+  return (
+    <Card>
+      <CardHeader
+        eyebrow="Top findings"
+        title="Highest-impact issues"
+        action={
+          <Link
+            to="./findings"
+            className="inline-flex items-center gap-1 rounded-lg border border-ink-200 px-2.5 py-1 text-xs font-medium text-ink-700 hover:bg-ink-50"
+          >
+            View all findings
+          </Link>
+        }
+      />
+      <div className="mt-3 space-y-2">
+        {findings.length === 0 ? (
+          <EmptyState
+            title="No findings yet"
+            description="Run detection to surface quality issues."
+          />
+        ) : (
+          findings.map((f) => <FindingRow key={f.finding_id} finding={f} />)
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function FindingRow({ finding }: { finding: Finding }) {
+  const title = findingTitle(finding.kind, finding.column_name);
+  const subline = findingSubline(finding.kind, finding.value, finding.threshold);
+  return (
+    <div className="flex items-start gap-3 rounded-xl border border-ink-100 px-3 py-2.5 transition-colors hover:bg-ink-50/60">
+      <FindingIcon kind={finding.kind} severity={finding.severity} size={36} />
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-semibold text-ink-900">{title}</div>
+        <div className="mt-0.5 truncate text-xs text-ink-500">{subline}</div>
+      </div>
+      <ImpactPill severity={finding.severity} />
+    </div>
+  );
+}
+
+function ImpactPill({ severity }: { severity: string }) {
+  const sev = (severity ?? "").toLowerCase();
+  const color =
+    sev === "critical" || sev === "high"
+      ? "text-sev-high"
+      : sev === "medium"
+        ? "text-sev-medium"
+        : "text-sev-low";
+  const label =
+    sev === "critical" || sev === "high"
+      ? "High"
+      : sev === "medium"
+        ? "Medium"
+        : sev === "low" || sev === "info"
+          ? "Low"
+          : "—";
+  return (
+    <div className="shrink-0 text-right">
+      <div className="text-[10px] font-medium uppercase tracking-wider text-ink-400">
+        Impact
+      </div>
+      <div className={cn("text-xs font-semibold", color)}>{label}</div>
+    </div>
+  );
+}
+
 /* ---------- Quality over time ---------- */
 function QualityOverTimeCard({ datasetId }: { datasetId: string }) {
   const { data, isLoading, error } = useQuery({
     queryKey: ["scores", datasetId],
     queryFn: () => listScores(datasetId, 1, 30),
   });
+  const [range, setRange] = useState<"7" | "14" | "30">("30");
 
   const series = useMemo(() => {
     const items = (data?.items ?? []).slice(0, 30).reverse();
+    const slice = items.slice(-Number(range));
     return [
       {
         name: "Score",
         colour: "#5b6cff",
-        values: items.map((s, i) => ({ x: `D${i + 1}`, y: s.score })),
+        values: slice.map((s, i) => ({
+          x: shortDate(s.created_at),
+          y: s.score,
+          i,
+        })),
       },
     ];
-  }, [data]);
+  }, [data, range]);
+
+  const lastPoint = series[0].values[series[0].values.length - 1];
+  const lastDate = lastPoint?.x ?? "";
 
   return (
     <Card>
       <CardHeader
-        eyebrow="Trend"
-        title="Quality over time"
-        description="Last 30 score runs."
+        eyebrow="Quality over time"
+        title="Score trend"
+        action={<RangeDropdown value={range} onChange={setRange} />}
       />
       <div className="mt-2">
         {isLoading ? (
-          <LoadingState label="Loading scoresï¿½" />
+          <LoadingState label="Loading scores..." />
         ) : error ? (
           <EmptyState title="Unable to load scores" />
         ) : series[0].values.length === 0 ? (
-          <EmptyState title="No scores yet" description="Run scoring to populate the trend." />
+          <EmptyState
+            title="No scores yet"
+            description="Run scoring to populate the trend."
+          />
         ) : (
-          <QualityOverTimeChart data={series} height={220} yDomain={[0, 100]} />
+          <div className="relative">
+            <QualityOverTimeChart data={series} height={200} yDomain={[0, 100]} />
+            {lastPoint && (
+              <div
+                className="pointer-events-none absolute right-2 top-2 rounded-lg border border-ink-100 bg-white px-2.5 py-1.5 text-right shadow-card"
+                style={{ minWidth: 80 }}
+              >
+                <div className="text-[10px] uppercase tracking-wider text-ink-500">
+                  {lastDate}
+                </div>
+                <div className="text-sm font-semibold tnum text-ink-900">
+                  {Math.round(lastPoint.y)}
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </Card>
   );
 }
+
+function RangeDropdown({
+  value,
+  onChange,
+}: {
+  value: "7" | "14" | "30";
+  onChange: (v: "7" | "14" | "30") => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 px-2.5 py-1 text-xs font-medium text-ink-700 hover:bg-ink-50"
+      >
+        Last {value} days
+        <ChevronDown className="h-3.5 w-3.5" />
+      </button>
+      {open && (
+        <div
+          className="absolute right-0 z-10 mt-1 w-32 rounded-lg border border-ink-100 bg-white py-1 shadow-card"
+          onMouseLeave={() => setOpen(false)}
+        >
+          {(["7", "14", "30"] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => {
+                onChange(v);
+                setOpen(false);
+              }}
+              className={cn(
+                "block w-full px-3 py-1.5 text-left text-xs hover:bg-ink-50",
+                v === value ? "font-semibold text-ink-900" : "text-ink-700",
+              )}
+            >
+              Last {v} days
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function shortDate(iso: string): string {
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return "—";
+  const d = new Date(t);
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  return `${months[d.getMonth()]} ${d.getDate()}`;
+}
+
 /* ---------- AI interpretation ---------- */
 function AIInterpretationCard({
   summary,
+  likelyCause,
   confidence,
   detectedAt,
   sparkIcon,
 }: {
   summary?: string;
+  likelyCause?: string | null;
   confidence?: number;
   detectedAt?: string;
   sparkIcon?: boolean;
@@ -341,51 +630,83 @@ function AIInterpretationCard({
   return (
     <Card>
       <CardHeader
-        eyebrow="AI interpretation"
+        eyebrow={
+          <span className="inline-flex items-center gap-1.5">
+            <Sparkles className="h-3.5 w-3.5" />
+            AI interpretation
+          </span>
+        }
         title="What the model thinks"
-        description={detectedAt ? `Generated ${formatRelativeFromNow(detectedAt)}` : undefined}
         action={
           <button className="btn-secondary" type="button">
             <RotateCcw className="h-4 w-4" />
-            <span>Re-run</span>
+            <span>Regenerate</span>
           </button>
         }
       />
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-12">
-        <div className="lg:col-span-8">
-          <div className="flex items-start gap-3">
-            {sparkIcon && (
-              <span className="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
-                <Sparkles className="h-4 w-4" />
-              </span>
-            )}
-            <p className="text-sm leading-6 text-ink-700">
-              {summary ?? "No interpretation yet. Run detection and scoring to populate this card."}
-            </p>
+      <div className="mt-4 flex items-start gap-3">
+        {sparkIcon && (
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600">
+            <Sparkles className="h-4 w-4" />
+          </span>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-sm leading-6 text-ink-700">
+            {summary ??
+              "No interpretation yet. Run detection and scoring to populate this card."}
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <FootChip
+              label="Likely cause"
+              value={likelyCause ?? "Pipeline retry"}
+              variant="violet"
+            />
+            <FootChip
+              label="Confidence"
+              value={
+                confidence === undefined
+                  ? "—"
+                  : confidence >= 0.8
+                    ? "High"
+                    : confidence >= 0.5
+                      ? "Medium"
+                      : "Low"
+              }
+              variant="blue"
+            />
+            <FootChip
+              label="Detected"
+              value={detectedAt ? formatRelativeFromNow(detectedAt) : "—"}
+              variant="muted"
+            />
           </div>
-        </div>
-        <div className="lg:col-span-4 space-y-2">
-          <Stat icon={<AlertTriangle className="h-3.5 w-3.5" />} label="Top issue" value="null_rate" />
-          <Stat icon={<Tag className="h-3.5 w-3.5" />} label="Affected columns" value="5" />
-          <Stat icon={<Lightbulb className="h-3.5 w-3.5" />} label="Top recommendation" value="trim whitespace" />
-          <Stat icon={<GitBranch className="h-3.5 w-3.5" />} label="Lineage delta" value="12 new findings" />
-          <Stat icon={<Eye className="h-3.5 w-3.5" />} label="Confidence" value={confidence !== undefined ? formatPercent(confidence) : "ï¿½"} />
         </div>
       </div>
     </Card>
   );
 }
 
-function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function FootChip({
+  label,
+  value,
+  variant = "muted",
+}: {
+  label: string;
+  value: string;
+  variant?: "violet" | "blue" | "muted";
+}) {
+  const cls =
+    variant === "violet"
+      ? "bg-violet-50 text-violet-700"
+      : variant === "blue"
+        ? "bg-brand-50 text-brand-700"
+        : "bg-ink-50 text-ink-700";
   return (
-    <div className="flex items-center justify-between text-sm">
-      <span className="flex items-center gap-2 text-ink-500">
-        <span className="text-ink-400">{icon}</span>
+    <span className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs">
+      <span className={cn("rounded-md px-1.5 py-0.5 text-[11px] font-medium", cls)}>
         {label}
       </span>
       <span className="font-medium text-ink-900">{value}</span>
-    </div>
+    </span>
   );
 }
-
-

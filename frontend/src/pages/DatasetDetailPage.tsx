@@ -126,6 +126,11 @@ export function DatasetDetailPage() {
         showBack
         onRefresh={() => refetch()}
         isRefreshing={isRefetching}
+        meta={
+          <span className="hidden text-xs text-ink-500 sm:inline-flex">
+            Updated {v ? formatRelativeFromNow(v.created_at) : "—"}
+          </span>
+        }
         primaryAction={
           <button
             className="btn-icon border border-ink-100"
