@@ -1,4 +1,4 @@
-# Environment and secrets
+﻿# Environment and secrets
 .env
 .env.*
 !.env.example
@@ -6,6 +6,9 @@
 # Frontend
 frontend/node_modules/
 frontend/dist/
+frontend/dist-ssr/
+frontend/.vite/
+*.local
 
 # Python
 __pycache__/
@@ -32,6 +35,14 @@ backend/migrations/versions/__pycache__/
 .idea/
 .DS_Store
 Thumbs.db
+*.swp
+*.swo
+
+# Build / OS junk
+*.tmp
+*.bak
+*.orig
+*.rej
 
 # Personal / working files (not part of the project)
 # These are operator-side scripts and working docs that the
@@ -42,3 +53,13 @@ Thumbs.db
 .run-checks.sh
 HANDOFF.md
 focus_chain_*.md
+commit-msg-primitives.txt
+
+# Design mockups / references (live at repo root, not part of the app)
+frotnend.png
+frontend.png
+*.mockup.png
+mockup*.png
+
+# Backend test fixtures (test data, not source)
+backend/tests/fixtures/

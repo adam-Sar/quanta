@@ -66,7 +66,6 @@ Then open:
 - List durable analysis jobs for a dataset: `GET /datasets/{id}/jobs`
 - Get a specific durable analysis job: `GET /datasets/jobs/{job_id}`
 
-No frontend is included.
 
 ## Repository layout
 
