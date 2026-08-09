@@ -58,13 +58,14 @@ export default {
         },
         // Severity tokens — used for text and background colour.
         // low → brand blue (was green); high → red (was orange);
-        // medium → orange (was amber). The user asked for "no purple
-        // in the entire app" and a uniform severity gradient that
-        // matches the Top Findings stripe palette.
+        // medium → orange (was amber). Values are tuned to read at
+        // small text sizes (~12px) and to match the Top Findings
+        // stripe palette exactly so text and stripe always agree.
         sev: {
-          critical: "#dc2626", // red-600
-          high: "#dc2626",     // red-600
-          medium: "#ea580c",   // orange-600
+          critical: "#ef4444", // red-500   (same as the high stripe)
+          high: "#ef4444",     // red-500   (same as the stripe)
+          medium: "#f97316",   // orange-500 (brighter than #ea580c so
+                               // it doesn't read as brown at 12px)
           low: "#5b6cff",      // brand-500 (blue, not green)
           info: "#5b6cff",     // brand-500
         },

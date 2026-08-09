@@ -1,4 +1,4 @@
-﻿import { useParams, Outlet } from "react-router-dom";
+﻿﻿import { useParams, Outlet } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { MoreHorizontal } from "lucide-react";
 
@@ -14,6 +14,7 @@ import { getDataset } from "@/api/datasets";
 import { getDatasetProfile } from "@/api/profiles";
 import { getLineage } from "@/api/history";
 import {
+  cn,
   formatBytes,
   formatNumber,
   formatRelativeFromNow,
@@ -183,7 +184,10 @@ export function DatasetDetailPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-5">
+            {/* Thin vertical separator so the score block reads as a
+                distinct column of the hero card, mirroring the mockup. */}
+            <div aria-hidden className="h-12 w-px bg-ink-200" />
             <div className="text-right">
               <div className="label-eyebrow">Quality score</div>
               <div className="mt-1 text-3xl font-semibold tnum text-ink-900">
@@ -193,7 +197,14 @@ export function DatasetDetailPage() {
                 </span>
               </div>
               <div className="mt-1 flex items-center justify-end gap-1 text-xs">
-                <span className="text-ink-700">
+                <span
+                  className={cn(
+                    "font-medium",
+                    trend > 0 && "text-sev-low",
+                    trend < 0 && "text-sev-critical",
+                    trend === 0 && "text-ink-700",
+                  )}
+                >
                   {trend > 0 ? "+" : ""}
                   {trend.toFixed(0)} pts
                 </span>

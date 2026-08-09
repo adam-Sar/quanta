@@ -438,7 +438,7 @@ function TopFindingsCard({ findings }: { findings: Finding[] }) {
           />
         </div>
       ) : (
-        <ul className="mt-1 divide-y divide-ink-100">
+        <ul className="mt-1 space-y-2">
           {top.map((f) => (
             <FindingRow key={f.finding_id} finding={f} />
           ))}
@@ -452,25 +452,33 @@ function FindingRow({ finding }: { finding: Finding }) {
   const title = findingTitle(finding.kind, finding.column_name);
   const subline = findingSubline(finding.kind, finding.value, finding.threshold);
   return (
-    <li className="group relative flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-ink-50/50">
-      {/* Severity stripe — inset slightly from the row's left edge
-          and inset vertically so it reads as a soft "tab" marker with
-          a rounded right end, instead of a ruler-flat block. The
-          stripe is the primary colour signal; the icon stays neutral
-          so the two don't compete. */}
+    /* Each finding is its own block: subtle top + bottom border on a
+       white card, rounded corners, soft hover. The severity stripe
+       protrudes OUTWARD from the row's left edge as a vertical pill,
+       fully rounded on both ends and slightly taller than the row,
+       so the stripe reads as a separate floating marker rather than
+       a flat rectangle tucked inside the row. */
+    <li className="group relative overflow-visible rounded-xl border border-ink-100 bg-white px-4 py-3 transition-colors hover:border-ink-200 hover:bg-ink-50/40">
       <span
         aria-hidden
         className={cn(
-          "absolute left-1.5 top-1.5 bottom-1.5 w-1 rounded-r-full",
+          "absolute -left-1 top-1/2 h-3/4 w-1 -translate-y-1/2 rounded-full",
           severityStripe(finding.severity),
         )}
       />
-      <FindingIcon kind={finding.kind} bare size={18} className="text-ink-500" />
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-semibold text-ink-900">{title}</div>
-        <div className="mt-0.5 truncate text-xs text-ink-500">{subline}</div>
+      <div className="flex items-center gap-3">
+        <FindingIcon
+          kind={finding.kind}
+          severity={finding.severity}
+          bare
+          size={18}
+        />
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-semibold text-ink-900">{title}</div>
+          <div className="mt-0.5 truncate text-xs text-ink-500">{subline}</div>
+        </div>
+        <ImpactPill severity={finding.severity} />
       </div>
-      <ImpactPill severity={finding.severity} />
     </li>
   );
 }

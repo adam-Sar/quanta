@@ -1,10 +1,8 @@
 import {
   AlertTriangle,
-  Hash,
-  Layers,
-  Mail,
-  Phone,
-  TrendingUp,
+  CircleAlert,
+  Flame,
+  Info,
 } from "lucide-react";
 import { ReactNode } from "react";
 
@@ -12,44 +10,57 @@ import type { FindingKind, FindingSeverity } from "@/types/api";
 import { cn } from "@/lib/utils";
 
 /**
- * Matching icon + colour for a finding kind. Returned by `iconForFinding`.
- * The colour drives the small left-tile on each top-findings card.
+ * Severity-driven icon set. The icon communicates *how bad* a
+ * finding is, which is the dominant signal on the overview card
+ * (each row already carries a severity stripe). Using the same
+ * icon within a severity band keeps the row visually consistent
+ * regardless of finding kind.
+ *
+ *   critical  → flame           (most alarming)
+ *   high      → triangle-alert  (filled-in alert)
+ *   medium    → circle-alert    (softer outline)
+ *   low       → info            (informational)
+ *   info      → info            (informational)
+ *
+ * All icons are outline-style so they sit cleanly at 16-20px on a
+ * neutral text colour and don't compete with the coloured stripe.
  */
-function iconForFinding(kind: FindingKind | string): {
-  icon: ReactNode;
-  tile: string;
-} {
-  switch (kind) {
-    case "missingness":
-      return {
-        icon: <Mail className="h-4 w-4" />,
-        tile: "bg-red-50 text-sev-critical",
-      };
-    case "duplicates":
-      return {
-        icon: <Layers className="h-4 w-4" />,
-        tile: "bg-red-50 text-sev-critical",
-      };
-    case "outlier":
-      return {
-        icon: <TrendingUp className="h-4 w-4" />,
-        tile: "bg-orange-50 text-sev-high",
-      };
-    case "invalid_values":
-      return {
-        icon: <Phone className="h-4 w-4" />,
-        tile: "bg-brand-50 text-brand-600",
-      };
-    case "cardinality":
-      return {
-        icon: <Hash className="h-4 w-4" />,
-        tile: "bg-brand-50 text-brand-600",
-      };
+function iconForSeverity(severity: string): ReactNode {
+  switch (severity.toLowerCase()) {
+    case "critical":
+      return <Flame className="h-4 w-4" />;
+    case "high":
+      return <AlertTriangle className="h-4 w-4" />;
+    case "medium":
+      return <CircleAlert className="h-4 w-4" />;
+    case "low":
+      return <Info className="h-4 w-4" />;
+    case "info":
+      return <Info className="h-4 w-4" />;
     default:
-      return {
-        icon: <AlertTriangle className="h-4 w-4" />,
-        tile: "bg-ink-50 text-ink-600",
-      };
+      return <AlertTriangle className="h-4 w-4" />;
+  }
+}
+
+/**
+ * Severity → glyph colour. Matches the Top Findings stripe exactly
+ * (red-500 / orange-500 / brand-500) so a row's icon, stripe, and
+ * impact label all carry the same hue.
+ */
+function severityGlyphColour(severity: string): string {
+  switch (severity.toLowerCase()) {
+    case "critical":
+      return "text-red-500";
+    case "high":
+      return "text-red-500";
+    case "medium":
+      return "text-orange-500";
+    case "low":
+      return "text-brand-500";
+    case "info":
+      return "text-brand-500";
+    default:
+      return "text-ink-500";
   }
 }
 
@@ -67,26 +78,24 @@ export interface FindingIconProps {
 }
 
 /**
- * Small coloured icon tile used in the top-findings list.
- * Severity overrides the default kind colour when supplied.
- *
- * Pass `bare` to render just the glyph (e.g. inside a row that
- * already has its own severity stripe on the left edge).
+ * Severity-driven icon used in the top-findings list. When `bare` is
+ * true (the default for the overview card), the icon is just a small
+ * monochrome glyph tinted by severity. Without `bare`, the icon falls
+ * back to a coloured tile for callers that want the legacy look.
  */
 export function FindingIcon({
-  kind,
   severity,
-  size = 40,
+  size = 18,
   bare = false,
   className,
 }: FindingIconProps) {
-  const fallback = iconForFinding(kind);
-  const glyph = fallback.icon;
+  const glyph = severity ? iconForSeverity(severity) : <Info className="h-4 w-4" />;
   if (bare) {
     return (
       <span
         className={cn(
-          "inline-flex shrink-0 items-center justify-center text-ink-500",
+          "inline-flex shrink-0 items-center justify-center",
+          severity ? severityGlyphColour(severity) : "text-ink-500",
           className,
         )}
         style={{ width: size, height: size }}
@@ -96,12 +105,10 @@ export function FindingIcon({
       </span>
     );
   }
-  const tile = severity ? severityTile(severity) : fallback.tile;
   return (
     <div
       className={cn(
-        "grid shrink-0 place-items-center rounded-xl",
-        tile,
+        "grid shrink-0 place-items-center rounded-xl bg-ink-50 text-ink-600",
         className,
       )}
       style={{ width: size, height: size }}
@@ -110,23 +117,6 @@ export function FindingIcon({
       {glyph}
     </div>
   );
-}
-
-function severityTile(severity: string): string {
-  switch (severity.toLowerCase()) {
-    case "critical":
-      return "bg-red-50 text-sev-critical";
-    case "high":
-      return "bg-red-50 text-sev-high";
-    case "medium":
-      return "bg-orange-50 text-sev-medium";
-    case "low":
-      return "bg-brand-50 text-brand-600";
-    case "info":
-      return "bg-brand-50 text-brand-600";
-    default:
-      return "bg-ink-50 text-ink-600";
-  }
 }
 
 /* ---------- Finding kind helpers (label + per-kind subline) ---------- */
