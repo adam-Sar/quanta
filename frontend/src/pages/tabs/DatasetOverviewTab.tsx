@@ -454,15 +454,16 @@ function FindingRow({ finding }: { finding: Finding }) {
   return (
     /* Each finding is its own block: subtle top + bottom border on a
        white card, rounded corners, soft hover. The severity stripe
-       protrudes OUTWARD from the row's left edge as a vertical pill,
-       fully rounded on both ends and slightly taller than the row,
-       so the stripe reads as a separate floating marker rather than
-       a flat rectangle tucked inside the row. */
+       protrudes vertically beyond the row's top and bottom edges
+       (-top-1 / -bottom-1) and uses rounded-t-full + rounded-b-full
+       so its top and bottom curl INWARD into the row edges, while
+       the sides stay flat. The horizontal pill shape is wider
+       (w-1.5) so the curve reads clearly at a glance. */
     <li className="group relative overflow-visible rounded-xl border border-ink-100 bg-white px-4 py-3 transition-colors hover:border-ink-200 hover:bg-ink-50/40">
       <span
         aria-hidden
         className={cn(
-          "absolute -left-1 top-1/2 h-3/4 w-1 -translate-y-1/2 rounded-full",
+          "absolute -left-1 -top-1 -bottom-1 w-1.5 rounded-t-full rounded-b-full",
           severityStripe(finding.severity),
         )}
       />
@@ -522,7 +523,7 @@ function ImpactPill({ severity }: { severity: string }) {
       <div className="text-[10px] font-medium uppercase tracking-wider text-ink-400">
         Impact
       </div>
-      <div className={cn("text-xs font-semibold", color)}>{label}</div>
+      <div className={cn("text-xs font-bold", color)}>{label}</div>
     </div>
   );
 }
