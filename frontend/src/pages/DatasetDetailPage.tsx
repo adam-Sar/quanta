@@ -92,6 +92,9 @@ export function DatasetDetailPage() {
       ? scoreSeries[scoreSeries.length - 1] - scoreSeries[0]
       : 0;
 
+  const sparklineValues =
+    scoreSeries.length >= 2 ? scoreSeries : [];
+
   const tabs = [
     { label: "Overview", to: `/datasets/${dataset.id}` },
     {
@@ -145,7 +148,12 @@ export function DatasetDetailPage() {
 
       {/* Hero / breadcrumb-band */}
       <div className="px-6 pt-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        {/* `items-start` (combined with `self-start` on the right group) so
+            that when flex-wrap pushes the score + sparkline onto a second
+            line, they stay anchored to the top of that line instead of being
+            vertically centered against the tall CSV icon + metadata block —
+            which used to make the sparkline slide far below the CSV icon. */}
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-4">
             <FileIcon
               format={v?.format ?? "csv"}
@@ -184,7 +192,10 @@ export function DatasetDetailPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-5">
+          {/* `self-start` ensures that even when the row wraps, this group
+              sticks to the top of its own line — keeping the sparkline next
+              to (not under) the score column. */}
+          <div className="flex items-center gap-5 self-start">
             {/* Thin vertical separator so the score block reads as a
                 distinct column of the hero card, mirroring the mockup. */}
             <div aria-hidden className="h-12 w-px bg-ink-200" />
@@ -212,11 +223,7 @@ export function DatasetDetailPage() {
               </div>
             </div>
             <Sparkline
-              values={
-                scoreSeries.length
-                  ? scoreSeries
-                  : [70, 72, 75, 78, 80, 82, 85, 87]
-              }
+              values={sparklineValues}
               height={56}
               className="w-44"
             />
