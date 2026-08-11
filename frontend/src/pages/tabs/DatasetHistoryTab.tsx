@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { EmptyState, LoadingState } from "@/components/ui/States";
 import { getLineage } from "@/api/history";
-import { formatRelativeFromNow } from "@/lib/utils";
 import type { Dataset } from "@/types/api";
 
 interface Ctx { dataset: Dataset; }
@@ -21,7 +20,7 @@ export function DatasetHistoryTab() {
       <CardHeader
         eyebrow="Lineage"
         title="Version chain"
-        description="Deterministic lineage between immutable versions of this dataset."
+        description="Lineage between immutable versions of this dataset."
       />
       <div className="mt-4">
         {isLoading ? (
@@ -39,17 +38,9 @@ export function DatasetHistoryTab() {
                 <div className="text-sm font-medium text-ink-900">
                   v{e.from_version_number} → v{e.to_version_number}
                 </div>
-                <div className="text-xs text-ink-500">
-                  {e.relationship} · {formatRelativeFromNow(new Date().toISOString())}
-                </div>
+                <div className="text-xs text-ink-500">{e.relationship}</div>
               </li>
             ))}
-            {data.edges.length === 0 && (
-              <li>
-                <span className="absolute -left-1.5 mt-1 h-3 w-3 rounded-full bg-ink-200" />
-                <div className="text-sm text-ink-500">v1 of the dataset</div>
-              </li>
-            )}
           </ol>
         )}
       </div>

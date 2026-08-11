@@ -79,7 +79,7 @@ export function Sidebar() {
           </div>
           <div className="leading-tight">
             <div className="text-sm font-medium text-white">Quanta Studio</div>
-            <div className="text-[11px] text-ink-500">workspace · prod</div>
+            <div className="text-[11px] text-ink-500">workspace</div>
           </div>
         </div>
       </div>

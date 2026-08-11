@@ -6,6 +6,7 @@ import { Loader2, Play, Sparkles } from "lucide-react";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { ScoreRing } from "@/components/ui/ScoreRing";
 import { ProgressBar } from "@/components/ui/ProgressBar";
+import { SeverityDot } from "@/components/ui/Badge";
 import { EmptyState, ErrorState } from "@/components/ui/States";
 import { QualityOverTimeChart } from "@/components/ui/LineChart";
 import { listScores, runScore } from "@/api/scores";
@@ -118,14 +119,23 @@ export function DatasetQualityTab() {
         />
         <div className="mt-4 space-y-2">
           {Object.entries(cf?.by_severity ?? {}).map(([sev, b]) => (
-            <div key={sev} className="flex items-center justify-between text-sm">
-              <span className="capitalize text-ink-700">{sev}</span>
-              <span className="tnum text-ink-900">{formatNumber(b.count)} <span className="text-ink-500">· {formatPercent(b.penalty_normalized)}</span></span>
+            <div
+              key={sev}
+              className="flex items-center justify-between gap-3 text-sm"
+            >
+              <span className="flex items-center gap-2 text-ink-700">
+                <SeverityDot severity={sev} />
+                <span className="capitalize">{sev}</span>
+              </span>
+              <span className="tnum text-ink-900">
+                {formatNumber(b.count)}{" "}
+                <span className="text-ink-500">· {formatPercent(b.penalty_normalized)}</span>
+              </span>
             </div>
           ))}
         </div>
         <div className="mt-4 flex items-center gap-2 text-xs text-ink-500">
-          <Sparkles className="h-3.5 w-3.5" />
+          <Sparkles className="h-3.5 w-3.5" aria-hidden />
           <span>Formula {score?.formula_version ?? "—"}</span>
         </div>
       </Card>

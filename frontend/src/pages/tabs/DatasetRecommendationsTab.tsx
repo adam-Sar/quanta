@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Check, FlaskConical, Loader2, Sparkles } from "lucide-react";
 
 import { Card, CardHeader } from "@/components/ui/Card";
-import { SeverityText } from "@/components/ui/Badge";
+import { Badge, SeverityText } from "@/components/ui/Badge";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/States";
 import { listRecommendations, runRecommendations } from "@/api/recommendations";
 import { runValidation } from "@/api/findings";
@@ -91,7 +91,7 @@ function RecommendationRow({
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-ink-900">{rec.title}</span>
             <SeverityText severity={rec.severity} />
-            <span className="text-[11px] uppercase tracking-wider text-ink-500">{kindLabel(rec.kind)}</span>
+            <Badge variant="muted">{kindLabel(rec.kind)}</Badge>
           </div>
           <p className="mt-1 text-sm text-ink-600">{rec.rationale}</p>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-ink-500">

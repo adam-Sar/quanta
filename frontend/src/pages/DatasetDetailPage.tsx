@@ -1,20 +1,20 @@
 ﻿﻿import { useParams, Outlet } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Upload } from "lucide-react";
 
 import { Topbar, useDatasetCrumbs } from "@/components/layout/Topbar";
 import { TabBar } from "@/components/ui/TabBar";
 import { FileIcon } from "@/components/ui/FileIcon";
 import { Sparkline } from "@/components/ui/Sparkline";
+import { Trend } from "@/components/ui/Trend";
 import { LoadingState, ErrorState, EmptyState } from "@/components/ui/States";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { Card } from "@/components/ui/Card";
 import { listFindings } from "@/api/findings";
 import { listScores } from "@/api/scores";
 import { getDataset } from "@/api/datasets";
 import { getDatasetProfile } from "@/api/profiles";
 import { getLineage } from "@/api/history";
 import {
-  cn,
   formatBytes,
   formatNumber,
   formatRelativeFromNow,
@@ -207,18 +207,10 @@ export function DatasetDetailPage() {
                   /100
                 </span>
               </div>
-              <div className="mt-1 flex items-center justify-end gap-1 text-xs">
-                <span
-                  className={cn(
-                    "font-medium",
-                    trend > 0 && "text-sev-low",
-                    trend < 0 && "text-sev-critical",
-                    trend === 0 && "text-ink-700",
-                  )}
-                >
-                  {trend > 0 ? "+" : ""}
-                  {trend.toFixed(0)} pts
-                </span>
+              <div className="mt-1 flex items-center justify-end gap-1.5 text-xs">
+                {trend !== 0 && (
+                  <Trend delta={trend} suffix=" pts" direction="good_when_up" />
+                )}
                 <span className="text-ink-500">vs last run</span>
               </div>
             </div>
@@ -239,22 +231,14 @@ export function DatasetDetailPage() {
           onboarding card instead of letting the child tabs render empty. */}
       <div className="px-6 pb-6 pt-4">
         {v ? (
-          <Outlet
-            context={{ dataset, profile, score, findings, scores }}
-          />
+          <Outlet context={{ dataset, profile, score, findings, scores }} />
         ) : (
           <Card>
-            <CardHeader
-              eyebrow="No version"
-              title="This dataset doesn't have a version yet"
-              description="Upload a CSV or Parquet file to create the first version of this dataset."
+            <EmptyState
+              icon={<Upload className="h-5 w-5" />}
+              title="No version yet"
+              description="Upload a CSV or Parquet file to create the first version of this dataset. Profiling, scoring, and detection will run against it."
             />
-            <div className="mt-4">
-              <EmptyState
-                title="Nothing to analyse"
-                description="Once a version is available, profiling, scoring, and detection will run against it."
-              />
-            </div>
           </Card>
         )}
       </div>

@@ -21,7 +21,7 @@ export function AIPage() {
       <Topbar crumbs={[{ label: "AI" }]} />
       <PageHeader
         title="AI"
-        description="Backed by the deterministic backend. The frontend is content-only — anything model-derived lives server-side."
+        description="Model summaries, one per dataset run."
       />
       <div className="p-6">
         <Card>

@@ -7,7 +7,6 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState, LoadingState } from "@/components/ui/States";
 import { listDatasets } from "@/api/datasets";
 import { getLineage } from "@/api/history";
-import { formatRelativeFromNow } from "@/lib/utils";
 
 export function HistoryPage() {
   const { data: datasets } = useQuery({
@@ -20,14 +19,14 @@ export function HistoryPage() {
       <Topbar crumbs={[{ label: "History" }]} />
       <PageHeader
         title="History"
-        description="Recent activity across all datasets — the durable, queryable audit trail."
+        description="Recent lineage and jobs across all datasets."
       />
       <div className="p-6">
         <Card>
           <CardHeader
             eyebrow="Activity"
-            title="Recent lineage + jobs"
-            description="Per dataset, the latest version chain and job outcomes."
+            title="Recent activity"
+            description="Per-dataset lineage edges and run counts."
           />
           <div className="mt-4 -mx-5">
             {!datasets ? (
@@ -53,19 +52,28 @@ function DatasetHistoryRow({ datasetId, name }: { datasetId: string; name: strin
     queryKey: ["lineage", datasetId],
     queryFn: () => getLineage(datasetId),
   });
+  const edges = data?.edges ?? [];
   return (
     <li className="px-5 py-3">
-      <div className="flex items-center justify-between">
-        <Link to={`/datasets/${datasetId}/history`} className="text-sm font-medium text-ink-900 hover:text-brand-600">
+      <div className="flex items-center justify-between gap-3">
+        <Link
+          to={`/datasets/${datasetId}/history`}
+          className="text-sm font-medium text-ink-900 hover:text-brand-600"
+        >
           {name}
         </Link>
-        <span className="text-xs text-ink-500">
-          {isLoading ? "Loading…" : data ? `${data.edges.length} versions` : "No history"}
+        <span className="text-xs text-ink-500 tnum">
+          {isLoading
+            ? "Loading…"
+            : edges.length === 0
+              ? "No history"
+              : `${edges.length} version${edges.length === 1 ? "" : "s"}`}
         </span>
       </div>
-      {data && data.edges.length > 0 && (
+      {edges.length > 0 && (
         <div className="mt-2 text-xs text-ink-500">
-          Latest edge: v{data.edges[0].from_version_number} → v{data.edges[0].to_version_number} · {formatRelativeFromNow(new Date().toISOString())}
+          Latest edge: v{edges[0].from_version_number} → v
+          {edges[0].to_version_number}
         </div>
       )}
     </li>

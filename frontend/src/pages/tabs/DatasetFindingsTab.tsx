@@ -5,10 +5,11 @@ import { Loader2, Play } from "lucide-react";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { SeverityText } from "@/components/ui/Badge";
 import { SearchInput } from "@/components/ui/SearchInput";
+import { SeverityFilter } from "@/components/ui/SeverityFilter";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/States";
 import { runDetection } from "@/api/findings";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { kindLabel } from "@/lib/utils";
+import { formatMetric, kindLabel } from "@/lib/utils";
 import type { Dataset, FindingListResponse } from "@/types/api";
 
 interface Ctx {
@@ -56,21 +57,14 @@ export function DatasetFindingsTab() {
 
         {run.error && <div className="mt-3"><ErrorState error={run.error} title="Detection failed" /></div>}
 
-        <div className="mt-4 flex items-center gap-2">
-          <SearchInput value={search} onChange={setSearch} placeholder="Search findings…" className="max-w-xs" />
-          <div className="flex items-center gap-1">
-            {["critical", "high", "medium", "low", "info"].map((s) => (
-              <button
-                key={s}
-                onClick={() => setSevFilter(sevFilter === s ? null : s)}
-                className={`rounded-md px-2 py-1 text-xs font-medium capitalize transition-colors ${
-                  sevFilter === s ? "bg-ink-900 text-white" : "bg-ink-50 text-ink-700 hover:bg-ink-100"
-                }`}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Search findings…"
+            className="max-w-xs"
+          />
+          <SeverityFilter value={sevFilter} onChange={setSevFilter} />
         </div>
 
         <div className="mt-4 -mx-5">
@@ -100,8 +94,8 @@ export function DatasetFindingsTab() {
                     <td className="text-ink-500">{kindLabel(f.kind)}</td>
                     <td><SeverityText severity={f.severity} /></td>
                     <td className="font-mono text-xs">{f.column_name ?? "—"}</td>
-                    <td className="tnum">{f.value.toFixed(2)}</td>
-                    <td className="tnum text-ink-500">{f.threshold.toFixed(2)}</td>
+                    <td className="tnum">{formatMetric(f.value, 2)}</td>
+                    <td className="tnum text-ink-500">{formatMetric(f.threshold, 2)}</td>
                   </tr>
                 ))}
               </tbody>

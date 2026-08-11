@@ -115,7 +115,7 @@ export function DatasetsPage() {
       />
       <PageHeader
         title="Datasets"
-        description="Ingestion, versions, and the entry point to every analysis: profiling, scoring, recommendations, history, and lineage."
+        description="Every dataset, with versions and links to analysis."
       />
 
       <div className="space-y-4 p-6">

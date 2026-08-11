@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { cn } from "@/lib/utils";
+import { cn, severityColor } from "@/lib/utils";
 
 /* ---------- Severity text-only badge (no background pills) ---------- */
 
@@ -25,6 +25,27 @@ export function SeverityText({ severity, className }: SeverityTextProps) {
     <span className={cn("text-xs font-medium uppercase tracking-wide", cls, className)}>
       {severity ?? "—"}
     </span>
+  );
+}
+
+/**
+ * Severity-coloured dot used in lists and breakdowns where we want the
+ * colour signal without the bold uppercase text label (e.g. "Severity
+ * mix" rows where the word is already rendered).
+ */
+export interface SeverityDotProps {
+  severity: string | null | undefined;
+  className?: string;
+}
+
+export function SeverityDot({ severity, className }: SeverityDotProps) {
+  const key = (severity ?? "").toLowerCase();
+  const fill = severityColor[key] ?? "bg-ink-300";
+  return (
+    <span
+      className={cn("inline-block h-2 w-2 shrink-0 rounded-full", fill, className)}
+      aria-hidden
+    />
   );
 }
 

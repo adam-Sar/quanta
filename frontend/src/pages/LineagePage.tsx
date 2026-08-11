@@ -19,7 +19,7 @@ export function LineagePage() {
       <Topbar crumbs={[{ label: "Lineage" }]} />
       <PageHeader
         title="Lineage"
-        description="Deterministic lineage chains across all datasets."
+        description="Version chains for every dataset."
       />
       <div className="p-6">
         <Card>
@@ -52,13 +52,23 @@ function DatasetLineageRow({ datasetId, name }: { datasetId: string; name: strin
     queryKey: ["lineage", datasetId],
     queryFn: () => getLineage(datasetId),
   });
+  const edges = data?.edges ?? [];
   return (
     <li className="px-5 py-3">
-      <div className="flex items-center justify-between">
-        <Link to={`/datasets/${datasetId}/history`} className="text-sm font-medium text-ink-900 hover:text-brand-600">
+      <div className="flex items-center justify-between gap-3">
+        <Link
+          to={`/datasets/${datasetId}/history`}
+          className="text-sm font-medium text-ink-900 hover:text-brand-600"
+        >
           {name}
         </Link>
-        <span className="text-xs text-ink-500">{isLoading ? "Loading…" : data ? `${data.edges.length} edges` : "—"}</span>
+        <span className="text-xs text-ink-500 tnum">
+          {isLoading
+            ? "Loading…"
+            : edges.length === 0
+              ? "No edges"
+              : `${edges.length} edge${edges.length === 1 ? "" : "s"}`}
+        </span>
       </div>
     </li>
   );

@@ -2,7 +2,6 @@
 import {
   ArrowUpRight,
   Database,
-  LineChart,
   ShieldCheck,
   ListTodo,
 } from "lucide-react";
@@ -15,28 +14,19 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { SeverityText } from "@/components/ui/Badge";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Sparkline } from "@/components/ui/Sparkline";
+import { Trend } from "@/components/ui/Trend";
 import { LoadingState, ErrorState, EmptyState } from "@/components/ui/States";
 import { listDatasets } from "@/api/datasets";
 import { listFindings } from "@/api/findings";
 import { listScores } from "@/api/scores";
 import { listDatasetJobs } from "@/api/jobs";
-import { getHealth, getHealthReady } from "@/api/health";
 import {
   formatBytes,
+  formatMetric,
   formatNumber,
-  formatRelativeFromNow,
 } from "@/lib/utils";
 
 export function OverviewPage() {
-  const { data: health } = useQuery({
-    queryKey: ["health"],
-    queryFn: getHealth,
-  });
-  const { data: ready } = useQuery({
-    queryKey: ["health-ready"],
-    queryFn: getHealthReady,
-    refetchInterval: 60_000,
-  });
   const { data: datasets, isLoading: dl } = useQuery({
     queryKey: ["datasets", { page: 1, page_size: 50 }],
     queryFn: () => listDatasets({ page: 1, page_size: 50 }),
@@ -67,48 +57,28 @@ export function OverviewPage() {
     jobs?.items.filter((j: { status: string }) => j.status === "succeeded")
       .length ?? 0;
 
+  // Compare latest two scores to surface a directional trend (up = good).
+  const prevScore = scores?.items[1]?.score;
+  const scoreDelta =
+    score && prevScore !== undefined ? score.score - prevScore : 0;
+
   return (
     <>
-      <Topbar
-        crumbs={[{ label: "Overview" }]}
-        meta={
-          <span className="hidden text-xs text-ink-500 sm:inline-flex">
-            <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-sev-low" />
-            {ready?.status === "ready" ? "Production-ready" : "Warming up…"}
-          </span>
-        }
-      />
+      <Topbar crumbs={[{ label: "Overview" }]} />
 
       <PageHeader
         title="Overview"
-        description="Service health, latest runs, and the highest-impact issues across your datasets."
+        description="Latest runs and the highest-impact issues across your datasets."
       />
 
       <div className="space-y-6 p-6">
         {/* Top metric strip */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <KpiCard
             icon={<Database className="h-4 w-4" />}
             label="Datasets"
             value={dl ? "—" : formatNumber(datasets?.pagination.total_items ?? 0)}
-          />
-          <KpiCard
-            icon={<LineChart className="h-4 w-4" />}
-            label="Latest score"
-            value={
-              sl || !datasetId
-                ? "—"
-                : score
-                ? `${score.score.toFixed(0)}/100`
-                : "—/100"
-            }
-            helper={
-              score
-                ? `Grade ${score.grade} on ${head?.name ?? "latest dataset"}`
-                : datasetId
-                ? `No score yet on ${head?.name ?? "latest dataset"}`
-                : "No datasets yet"
-            }
+            helper={head ? head.name : "No datasets yet"}
           />
           <KpiCard
             icon={<ShieldCheck className="h-4 w-4" />}
@@ -128,96 +98,84 @@ export function OverviewPage() {
           />
         </div>
 
-        {/* Two-column section: latest dataset hero + service health */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <Card className="lg:col-span-2">
-            <CardHeader
-              eyebrow="Latest dataset"
-              title={
-                head ? (
-                  <Link
-                    to={`/datasets/${head.id}`}
-                    className="hover:text-brand-600"
-                  >
-                    {head.name}
-                  </Link>
-                ) : (
-                  "No datasets yet"
-                )
-              }
-              description={
-                v
-                  ? `${formatNumber(v.row_count)} ${v.row_count === 1 ? "row" : "rows"} · ${formatNumber(v.column_count)} ${v.column_count === 1 ? "column" : "columns"} · ${formatBytes(v.size_bytes)}`
-                  : "Upload a CSV or Parquet file to begin"
-              }
-              action={
-                head && (
-                  <Link
-                    to={`/datasets/${head.id}`}
-                    className="inline-flex items-center gap-0.5 text-xs font-medium text-brand-600 hover:text-brand-700"
-                  >
-                    Open <ArrowUpRight className="h-3.5 w-3.5" />
-                  </Link>
-                )
-              }
-            />
-            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <SubStatCard
-                label="Quality score"
-                value={
-                  sl || !datasetId
-                    ? "—/100"
-                    : score
+        {/* Latest dataset hero */}
+        <Card>
+          <CardHeader
+            eyebrow="Latest dataset"
+            title={
+              head ? (
+                <Link to={`/datasets/${head.id}`} className="hover:text-brand-600">
+                  {head.name}
+                </Link>
+              ) : (
+                "No datasets yet"
+              )
+            }
+            description={
+              v
+                ? `${formatNumber(v.row_count)} ${v.row_count === 1 ? "row" : "rows"} · ${formatNumber(v.column_count)} ${v.column_count === 1 ? "column" : "columns"} · ${formatBytes(v.size_bytes)}`
+                : "Upload a CSV or Parquet file to begin"
+            }
+            action={
+              head && (
+                <Link
+                  to={`/datasets/${head.id}`}
+                  className="inline-flex items-center gap-0.5 text-xs font-medium text-brand-600 hover:text-brand-700"
+                >
+                  Open <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
+                </Link>
+              )
+            }
+          />
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <SubStatCard
+              label="Quality score"
+              value={
+                sl || !datasetId
+                  ? "—"
+                  : score
                     ? `${score.score.toFixed(0)}/100`
-                    : "—/100"
-                }
-                footer={
-                  <ProgressBar
-                    value={(score?.score ?? 0) / 100}
-                    variant="severity"
-                  />
-                }
-              />
-              <SubStatCard
-                label="Findings"
-                value={fl ? "—" : formatNumber(totalFindings)}
-                footer={
-                  <Sparkline
-                    values={
-                      (findings?.items ?? []).length
-                        ? (findings!.items ?? [])
-                            .slice(0, 24)
-                            .map((f, i) => 80 - i * 2 + ((f.value ?? 0) % 4))
-                        : [70, 72, 75, 76, 78]
-                    }
-                    height={48}
-                  />
-                }
-              />
-            </div>
-          </Card>
-
-          <Card>
-            <CardHeader
-              eyebrow="Service"
-              title="Runtime status"
-              action={
-                <span className="text-xs text-ink-500">
-                  {health?.version ?? "—"}
-                </span>
+                    : "—"
+              }
+              footer={
+                score ? (
+                  <div className="flex items-center gap-2">
+                    <ProgressBar
+                      value={score.score / 100}
+                      variant="severity"
+                      className="flex-1"
+                    />
+                    {prevScore !== undefined && scoreDelta !== 0 && (
+                      <Trend
+                        delta={scoreDelta}
+                        suffix=" pts"
+                        direction="good_when_up"
+                      />
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-xs text-ink-500">No score yet</span>
+                )
               }
             />
-            <dl className="mt-4 grid grid-cols-2 gap-x-3 gap-y-3 text-sm">
-              <Field label="Status" value={health?.status ?? "—"} />
-              <Field label="Environment" value={health?.environment ?? "—"} />
-              <Field label="Database" value={ready?.checks.database ?? "—"} />
-              <Field
-                label="Last check"
-                value={formatRelativeFromNow(ready?.timestamp)}
-              />
-            </dl>
-          </Card>
-        </div>
+            <SubStatCard
+              label="Findings"
+              value={fl ? "—" : formatNumber(totalFindings)}
+              footer={
+                <Sparkline
+                  values={
+                    (findings?.items ?? []).length
+                      ? findings!.items
+                          .slice(0, 24)
+                          .map((f, i) => 80 - i * 2 + ((f.value ?? 0) % 4))
+                      : []
+                  }
+                  height={48}
+                />
+              }
+            />
+          </div>
+        </Card>
 
         {/* Recent findings */}
         <Card>
@@ -229,7 +187,7 @@ export function OverviewPage() {
                 to="/findings"
                 className="inline-flex items-center gap-0.5 text-xs font-medium text-brand-600 hover:text-brand-700"
               >
-                View all <ArrowUpRight className="h-3.5 w-3.5" />
+                View all <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
               </Link>
             }
           />
@@ -251,15 +209,13 @@ export function OverviewPage() {
                     <th>Kind</th>
                     <th>Severity</th>
                     <th>Column</th>
-                    <th>Value</th>
+                    <th className="text-right">Value</th>
                   </tr>
                 </thead>
                 <tbody>
                   {findings!.items.slice(0, 8).map((f) => (
                     <tr key={f.finding_id}>
-                      <td className="font-medium text-ink-900">
-                        {f.description}
-                      </td>
+                      <td className="font-medium text-ink-900">{f.description}</td>
                       <td className="text-ink-500">{f.kind}</td>
                       <td>
                         <SeverityText severity={f.severity} />
@@ -267,7 +223,9 @@ export function OverviewPage() {
                       <td className="font-mono text-xs">
                         {f.column_name ?? "—"}
                       </td>
-                      <td className="tnum">{f.value.toFixed(2)}</td>
+                      <td className="tnum text-right">
+                        {formatMetric(f.value, 2)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -321,15 +279,6 @@ function SubStatCard({
       <div className="label-eyebrow">{label}</div>
       <div className="mt-1 text-3xl font-semibold tnum text-ink-900">{value}</div>
       {footer && <div className="mt-3">{footer}</div>}
-    </div>
-  );
-}
-
-function Field({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="min-w-0">
-      <dt className="text-ink-500">{label}</dt>
-      <dd className="truncate font-medium text-ink-900">{value}</dd>
     </div>
   );
 }

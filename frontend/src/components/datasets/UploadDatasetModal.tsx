@@ -100,7 +100,7 @@ export function UploadDatasetModal({
             className="input min-h-[80px] py-2.5"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="What this dataset contains, where it comes from, who owns it."
+            placeholder="Short summary (optional)"
             maxLength={2000}
           />
         </div>

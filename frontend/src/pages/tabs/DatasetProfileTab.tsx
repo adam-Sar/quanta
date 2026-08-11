@@ -83,7 +83,7 @@ export function DatasetProfileTab() {
                 {profile.columns.map((c) => (
                   <tr key={c.name}>
                     <td className="font-medium text-ink-900">{c.name}</td>
-                    <td><Badge>{c.metrics.physical_type}</Badge></td>
+                    <td><Badge variant="muted">{c.metrics.physical_type}</Badge></td>
                     <td className="tnum">{(c.metrics.null_rate * 100).toFixed(2)}%</td>
                     <td className="tnum">{(c.metrics.distinct_rate * 100).toFixed(2)}%</td>
                     <td className="tnum font-mono text-xs">{formatNumber(c.metrics.numeric.min)}</td>

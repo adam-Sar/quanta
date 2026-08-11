@@ -60,20 +60,26 @@ export function ErrorState({ error, title = "Something went wrong", onRetry }: E
   const message = isApi ? error.message : (error as Error)?.message ?? "Unknown error";
   const requestId = isApi ? error.requestId : null;
   return (
-    <div className="flex flex-col items-center justify-center gap-2 px-6 py-12 text-center">
+    <div
+      role="status"
+      aria-live="polite"
+      className="flex flex-col items-center justify-center gap-2 px-6 py-12 text-center"
+    >
       <div className="grid h-10 w-10 place-items-center rounded-2xl bg-red-50 text-sev-critical">
-        <AlertTriangle className="h-5 w-5" />
+        <AlertTriangle className="h-5 w-5" aria-hidden />
       </div>
       <h3 className="text-sm font-semibold text-ink-900">{title}</h3>
       <p className="max-w-md text-sm text-ink-500">{message}</p>
-      <div className="text-[11px] uppercase tracking-wider text-ink-400">
-        code: {code}
+      <div className="text-[11px] uppercase tracking-wider text-ink-500">
+        code: <span className="font-mono normal-case tracking-normal">{code}</span>
       </div>
       {requestId && (
-        <div className="text-[11px] text-ink-400">request id: {requestId}</div>
+        <div className="text-[11px] text-ink-500">
+          request id: <span className="font-mono">{requestId}</span>
+        </div>
       )}
       {onRetry && (
-        <button onClick={onRetry} className="btn-secondary mt-2">
+        <button onClick={onRetry} className="btn-secondary mt-2" type="button">
           Try again
         </button>
       )}

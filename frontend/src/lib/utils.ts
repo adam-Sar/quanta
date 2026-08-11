@@ -52,6 +52,32 @@ export function formatDecimal4(n: number | null | undefined): string {
   return decimal4.format(n);
 }
 
+/**
+ * Null-safe fixed-precision formatter used for finding/measurement
+ * values that the backend may report as null (e.g. when a metric
+ * wasn't computable for a column type). Falls back to "—" instead
+ * of throwing on null/undefined.
+ */
+export function formatMetric(
+  n: number | null | undefined,
+  digits = 2,
+): string {
+  if (n === null || n === undefined || Number.isNaN(n)) return "—";
+  return new Intl.NumberFormat("en", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  }).format(n);
+}
+
+/** SeverityDot palette mirroring `tailwind.config.js` `sev.*` tokens. */
+export const severityColor: Record<string, string> = {
+  critical: "bg-sev-critical",
+  high: "bg-sev-high",
+  medium: "bg-sev-medium",
+  low: "bg-sev-low",
+  info: "bg-sev-info",
+};
+
 export function formatRelativeFromNow(iso: string | null | undefined): string {
   if (!iso) return "—";
   const t = Date.parse(iso);

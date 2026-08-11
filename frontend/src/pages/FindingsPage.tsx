@@ -7,6 +7,7 @@ import { Card, CardHeader } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SeverityText } from "@/components/ui/Badge";
 import { SearchInput } from "@/components/ui/SearchInput";
+import { SeverityFilter } from "@/components/ui/SeverityFilter";
 import { EmptyState, LoadingState } from "@/components/ui/States";
 import { listDatasets } from "@/api/datasets";
 import { listFindings } from "@/api/findings";
@@ -35,26 +36,14 @@ export function FindingsPage() {
             title="All findings"
             description="Filter by severity, search descriptions, or click through to a dataset."
           />
-          <div className="mt-4 flex items-center gap-2">
+          <div className="mt-4 flex flex-wrap items-center gap-2">
             <SearchInput
               value={search}
               onChange={setSearch}
               placeholder="Search findings…"
               className="max-w-xs"
             />
-            <div className="flex items-center gap-1">
-              {["critical", "high", "medium", "low", "info"].map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setSev(sev === s ? null : s)}
-                  className={`rounded-md px-2 py-1 text-xs font-medium capitalize transition-colors ${
-                    sev === s ? "bg-ink-900 text-white" : "bg-ink-50 text-ink-700 hover:bg-ink-100"
-                  }`}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
+            <SeverityFilter value={sev} onChange={setSev} />
           </div>
           <div className="mt-4 -mx-5">
             {!datasets ? (

@@ -17,7 +17,7 @@ export function LimitsPage() {
       <Topbar crumbs={[{ label: "Limits" }]} />
       <PageHeader
         title="Limits"
-        description="Per-environment ceilings surfaced by the backend. Updates land here without a frontend change."
+        description="System ceilings applied to uploads and runs."
       />
       <div className="p-6">
         <Card>

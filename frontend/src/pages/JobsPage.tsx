@@ -39,7 +39,7 @@ export function JobsPage() {
       <Topbar crumbs={[{ label: "Jobs" }]} />
       <PageHeader
         title="Jobs"
-        description="Durable, queryable analysis runs. The current backend runs Jobs synchronously; a worker swap will not change the persisted shape."
+        description="Durable, queryable analysis runs."
       />
       <div className="p-6">
         <Card>

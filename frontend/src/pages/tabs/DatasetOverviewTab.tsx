@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { useOutletContext, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import { Card, CardHeader } from "@/components/ui/Card";
+import { ProgressBar } from "@/components/ui/ProgressBar";
 import { ScoreRing } from "@/components/ui/ScoreRing";
 import { Trend } from "@/components/ui/Trend";
 import { SearchInput } from "@/components/ui/SearchInput";
@@ -195,16 +196,16 @@ function TopMetricRow({
         </div>
       </Card>
       <Card>
-        <KpiCard title="Completeness" value={formatPercent(topCompleteness)} delta={2.6} barValue={topCompleteness} barTone="brand" />
+        <KpiCard title="Completeness" value={formatPercent(topCompleteness)} delta={2.6} barValue={topCompleteness} />
       </Card>
       <Card>
-        <KpiCard title="Uniqueness" value={formatPercent(topUniqueness)} delta={-1.3} barValue={topUniqueness} barTone="brand" />
+        <KpiCard title="Uniqueness" value={formatPercent(topUniqueness)} delta={-1.3} barValue={topUniqueness} />
       </Card>
       <Card>
-        <KpiCard title="Validity" value={formatPercent(topValidity)} delta={0.8} barValue={topValidity} barTone="brand" />
+        <KpiCard title="Validity" value={formatPercent(topValidity)} delta={0.8} barValue={topValidity} />
       </Card>
       <Card>
-        <KpiCard title="Timeliness" value={formatPercent(topTimeliness)} delta={1.7} barValue={topTimeliness} barTone="brand" />
+        <KpiCard title="Timeliness" value={formatPercent(topTimeliness)} delta={1.7} barValue={topTimeliness} />
       </Card>
     </div>
   );
@@ -215,30 +216,19 @@ function KpiCard({
   value,
   delta,
   barValue,
-  barTone = "brand",
 }: {
   title: string;
   value: string;
   delta: number;
   barValue: number;
-  barTone?: "brand" | "severity";
 }) {
-  const fill =
-    barTone === "severity"
-      ? "bg-gradient-to-r from-brand-400 to-brand-600"
-      : "bg-gradient-to-r from-brand-300 to-brand-600";
   return (
     <div>
       <div className="label-eyebrow">{title}</div>
       <div className="mt-2 text-2xl font-semibold tnum text-ink-900">{value}</div>
-      <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-ink-100">
-        <div
-          className={cn("h-full rounded-full transition-all", fill)}
-          style={{ width: `${Math.max(0, Math.min(1, barValue)) * 100}%` }}
-        />
-      </div>
+      <ProgressBar value={barValue} variant="brand" className="mt-3" />
       <div className="mt-2">
-        <Trend delta={delta} />
+        <Trend delta={delta} direction="good_when_up" />
       </div>
     </div>
   );
@@ -599,10 +589,30 @@ function RangeDropdown({
   onChange: (v: "7" | "14" | "30") => void;
 }) {
   const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
   return (
-    <div className="relative">
+    <div ref={ref} className="relative">
       <button
         type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
         className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 px-2.5 py-1 text-xs font-medium text-ink-700 hover:bg-ink-50"
       >
@@ -610,27 +620,28 @@ function RangeDropdown({
         <ChevronDown className="h-3.5 w-3.5" />
       </button>
       {open && (
-        <div
-          className="absolute right-0 z-10 mt-1 w-32 rounded-lg border border-ink-100 bg-white py-1 shadow-card"
-          onMouseLeave={() => setOpen(false)}
+        <ul
+          role="listbox"
+          className="absolute right-0 z-10 mt-1 w-32 overflow-hidden rounded-lg border border-ink-100 bg-white py-1 shadow-card"
         >
           {(["7", "14", "30"] as const).map((v) => (
-            <button
-              key={v}
-              type="button"
-              onClick={() => {
-                onChange(v);
-                setOpen(false);
-              }}
-              className={cn(
-                "block w-full px-3 py-1.5 text-left text-xs hover:bg-ink-50",
-                v === value ? "font-semibold text-ink-900" : "text-ink-700",
-              )}
-            >
-              Last {v} days
-            </button>
+            <li key={v} role="option" aria-selected={v === value}>
+              <button
+                type="button"
+                onClick={() => {
+                  onChange(v);
+                  setOpen(false);
+                }}
+                className={cn(
+                  "block w-full px-3 py-1.5 text-left text-xs hover:bg-ink-50",
+                  v === value ? "font-semibold text-ink-900" : "text-ink-700",
+                )}
+              >
+                Last {v} days
+              </button>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </div>
   );
@@ -702,7 +713,7 @@ function AIInterpretationCard({
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <FootChip
               label="Likely cause"
-              value={likelyCause ?? "Pipeline retry"}
+              value={likelyCause ?? "—"}
               variant="blue"
             />
             <FootChip
